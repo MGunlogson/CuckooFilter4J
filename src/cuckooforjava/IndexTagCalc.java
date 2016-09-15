@@ -40,29 +40,21 @@ import cuckooforjava.SerializableSaltedHasher.Algorithm;
 
 class BucketAndTag {
 
-	public final int bucketIndex;
+	public final int index;
 	public final int tag;
 
 	BucketAndTag(int bucketIndex, int tag) {
-		this.bucketIndex = bucketIndex;
+		this.index = bucketIndex;
 		this.tag = tag;
 	}
 }
 
 class IndexTagCalc<T> implements Serializable {
-	/*
-	 * Why is it so important that numBuckets is a power of 2? Look up modulo
-	 * bias. Essentially, taking a remainder to fit a number into a range will
-	 * always produce a bias towards certain numbers depending on your divisor,
-	 * with one exception. There is no bias produced when using modulo to range
-	 * a large int into a smaller range when the divisor is a power of 2.
-	 */
 	private static final long serialVersionUID = -2052598678199099089L;
 
 	private final SerializableSaltedHasher<T> hasher;
 	private final int numBuckets;
 	private final int tagBits;
-	private final int indexHashBitsNotUsed;
 
 	public IndexTagCalc(Algorithm hasherAlg, Funnel<? super T> funnel, int numBuckets, int tagBits) {
 		// instantiated saltedhasher will check its own args :)
@@ -77,7 +69,7 @@ class IndexTagCalc<T> implements Serializable {
 		checkArgument(tagBits > 0, "Number of tag bits (%s) must be positive", tagBits);
 		checkArgument(tagBits < 28, "Number of tag bits (%s) must be less than 28", tagBits);
 		checkArgument(numBuckets > 1, "Number of buckets (%s) must be more than 1", numBuckets);
-		this.indexHashBitsNotUsed = getIndexTagBitsNotUsed(numBuckets);
+		int indexHashBitsNotUsed = getIndexTagBitsNotUsed(numBuckets);
 		int leftoverBits = indexHashBitsNotUsed - tagBits;
 		checkArgument(leftoverBits > 1,
 				"Table configuration exhausts 32 bit hash. Make table smaller (less keys or higher fpp). (%s) bits used.",
@@ -109,7 +101,6 @@ class IndexTagCalc<T> implements Serializable {
 		HashCode code = hasher.hashObj(item);
 		int hashVal = code.asInt();
 		bucketIndex = getBucketIndex(hashVal);
-		assert bucketIndex >= 0;
 		// loop until tag isn't equal to empty bucket (0)
 		tag = getTagValue(hashVal);
 		for (int salt = 1; tag == 0; salt++) {
@@ -136,26 +127,27 @@ class IndexTagCalc<T> implements Serializable {
 	@VisibleForTesting
 	int getBucketIndex(int hashVal) {
 		// take index bits from left end of hash
-		int highBits = hashVal >>> indexHashBitsNotUsed;
-		// since we shifted sign bit away, number will always be positive
-		// we can mod against numbuckets to pull index into proper range since
-		// numBuckets is power of 2
-		return highBits % numBuckets;
+		//just use everything we're not using for tag, why not
+		return hashIndex(hashVal >>> tagBits);
 	}
 
-	public int alternateIndex(int bucketIndex, int tag) {
-		/*
-		 * 0x5bd1e995 hash constant from MurmurHash2...interesting. also used in
-		 * c implementation https://github.com/efficient/cuckoofilter/ TODO:
-		 * maybe we should just run the hash algorithm again?
-		 */
-		int reHashed = bucketIndex ^ (tag * 0x5bd1e995);
-		// flip bits if negative,force positive bucket index
-		if (reHashed < 0)
-			reHashed = ~reHashed;
-		// we essentially have a random 31 bit positive # at this point
-		// since numBuckets is a power of 2 we can still mod into correct range
-		return reHashed % numBuckets;
+	public int altIndex(int bucketIndex, int tag) {
+		/* 0x5bd1e995 hash constant from MurmurHash2...interesting. also used in
+		 * reference implementation https://github.com/efficient/cuckoofilter/ */
+		//flip bits if negative
+		int altIndex= bucketIndex ^ (tag * 0x5bd1e995);
+		if(altIndex<0)
+			altIndex = ~altIndex;
+		//now pull into valid range
+		return hashIndex(altIndex);
+	}
+	
+	public int hashIndex(int index)
+	{
+		/*we always need to return a bucket index within table range
+		 * if we try to range it later during read/write 
+		 * things will go terribly wrong since the index becomes circular */
+		return index % numBuckets;
 	}
 
 	@Override
@@ -165,19 +157,18 @@ class IndexTagCalc<T> implements Serializable {
 		}
 		if (object instanceof IndexTagCalc) {
 			IndexTagCalc<?> that = (IndexTagCalc<?>) object;
-			return this.hasher.equals(that.hasher) && this.numBuckets == that.numBuckets && this.tagBits == that.tagBits
-					&& this.indexHashBitsNotUsed == that.indexHashBitsNotUsed;
+			return this.hasher.equals(that.hasher) && this.numBuckets == that.numBuckets && this.tagBits == that.tagBits;
 		}
 		return false;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(hasher, numBuckets, tagBits, indexHashBitsNotUsed);
+		return Objects.hash(hasher, numBuckets, tagBits);
 	}
 
 	public IndexTagCalc<T> copy() {
-		return new IndexTagCalc<T>(hasher.copy(), numBuckets, tagBits);
+		return new IndexTagCalc<>(hasher.copy(), numBuckets, tagBits);
 	}
 
 }

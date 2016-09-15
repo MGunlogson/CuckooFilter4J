@@ -27,13 +27,14 @@ package cuckooforjava;
 
 import static org.junit.Assert.*;
 
+import java.util.HashSet;
+
 import org.junit.Test;
 
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
 
-import cuckooforjava.FilterTable.TagResult;
 
 public class TestFilterTable {
 
@@ -93,7 +94,7 @@ public class TestFilterTable {
 			for (int bucket = 0; bucket < 1000; bucket++) {
 				// switch tag around a bit on each bucket insert
 				int tagMutate = testTag >>> posInBucket;
-				table.deleteTagInBucket(bucket, tagMutate);
+				table.deleteFromBucket(bucket, tagMutate);
 			}
 		}
 		// should be empty
@@ -110,11 +111,11 @@ public class TestFilterTable {
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		int testTag = 0b00000000000000000000000000011111;
 		table.writeTag(1, 2, testTag);
-		assertFalse(table.findTagInBuckets(2, 3, testTag));
-		assertTrue(table.findTagInBuckets(1, 3, testTag));
-		assertTrue(table.findTagInBuckets(3, 1, testTag));
+		assertFalse(table.findTag(2, 3, testTag));
+		assertTrue(table.findTag(1, 3, testTag));
+		assertTrue(table.findTag(3, 1, testTag));
 		table.writeTag(2, 2, testTag);
-		assertTrue(table.findTagInBuckets(1, 2, testTag));
+		assertTrue(table.findTag(1, 2, testTag));
 	}
 
 	@Test
@@ -122,31 +123,58 @@ public class TestFilterTable {
 		int testTag = 0b00000000000000000000000000011111;
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		// buckets can hold 4 tags
-		assertTrue(table.insertTagIntoBucket(5, testTag, false).isSuccess());
-		assertTrue(table.insertTagIntoBucket(5, testTag, false).isSuccess());
-		assertTrue(table.insertTagIntoBucket(5, testTag, false).isSuccess());
-		assertTrue(table.insertTagIntoBucket(5, testTag, false).isSuccess());
-		assertFalse(table.insertTagIntoBucket(5, testTag, false).isSuccess());
+		assertTrue(table.insertToBucket(5, testTag));
+		assertTrue(table.insertToBucket(5, testTag));
+		assertTrue(table.insertToBucket(5, testTag));
+		assertTrue(table.insertToBucket(5, testTag));
+		assertFalse(table.insertToBucket(5, testTag));
 	}
 
 	@Test
-	public void testKickOnFullBucket() {
+	public void testTagSwap() {
 		int testTag = 0b00000000000000000000000000011111;
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		// buckets can hold 4 tags
-		TagResult res = table.insertTagIntoBucket(5, testTag, true);
-		assertTrue(res.isSuccess() && res.getOldTag() == 0);
-		res = table.insertTagIntoBucket(5, testTag, true);
-		assertTrue(res.isSuccess() && res.getOldTag() == 0);
-		res = table.insertTagIntoBucket(5, testTag, true);
-		assertTrue(res.isSuccess() && res.getOldTag() == 0);
-		res = table.insertTagIntoBucket(5, testTag, true);
-		assertTrue(res.isSuccess() && res.getOldTag() == 0);
-		// kick should happen here, not before bucket full
-		res = table.insertTagIntoBucket(5, testTag, true);
-		assertTrue(res.isSuccess() && res.getOldTag() == testTag);
+		assertTrue(table.insertToBucket(5, testTag));
+		assertTrue(table.insertToBucket(5, testTag));
+		assertTrue(table.insertToBucket(5, testTag));
+		assertTrue(table.insertToBucket(5, testTag));
+		assertFalse(table.insertToBucket(5, testTag));
+		//make sure table will give me a tag and swap
+		int swap=table.swapRandomTagInBucket(5, 6);
+		assertTrue("swapped tag is "+swap+" expected "+testTag,swap==testTag);
+		assertTrue(table.findTag(5, 1, 6));
+		assertTrue(table.findTag(1, 5, 6));
 	}
 
+	@Test
+	public void testTagSwap2() {
+		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		// buckets can hold 4 tags
+		assertTrue(table.insertToBucket(5, 1));
+		assertTrue(table.insertToBucket(5, 2));
+		assertTrue(table.insertToBucket(5, 3));
+		assertTrue(table.insertToBucket(5, 4));
+		//make sure table will give me a tag and swap
+		int swap=5;
+		for(int i=0;i<1000;i++)
+		{
+			swap=table.swapRandomTagInBucket(5, swap);
+		}
+		HashSet<Integer> tagVals= new HashSet<>();
+		tagVals.add(swap);
+		tagVals.add(table.readTag(5, 0));
+		tagVals.add(table.readTag(5, 1));
+		tagVals.add(table.readTag(5, 2));
+		tagVals.add(table.readTag(5, 3));
+		assertTrue(tagVals.size()==5);
+		assertTrue(tagVals.contains(1));
+		assertTrue(tagVals.contains(2));
+		assertTrue(tagVals.contains(3));
+		assertTrue(tagVals.contains(4));
+		assertTrue(tagVals.contains(5));
+	}
+	
 	@Test
 	public void testBitBleedWithinBucket() {
 		int canaryTag = 0b11111111111111111111111111111111;

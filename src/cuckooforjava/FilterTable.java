@@ -46,20 +46,20 @@ class FilterTable implements Serializable {
 	 * NOTE: Google's Guava library uses a custom BitSet implementation that
 	 * looks to be adapted from the Lucene project. Guava project notes show
 	 * this seems to be done for faster serialization and support for
-	 * longs(giant filters) We use regular BitSet for now, since cuckoo filters
-	 * can't be combined the need for serialization is lower and I would rather
-	 * have readability.
+	 * longs(giant filters) 
 	 */
 	private final BitSet memBlock;
 	private final int bitsPerTag;
 	private final Random rando;
 	private int maxKeys;
+	private int numBuckets;
 
-	private FilterTable(BitSet memBlock, int bitsPerTag, int maxKeys) {
+	private FilterTable(BitSet memBlock, int bitsPerTag, int maxKeys,int numBuckets) {
 		this.bitsPerTag = bitsPerTag;
 		this.memBlock = memBlock;
 		this.rando = new Random();
 		this.maxKeys = maxKeys;
+		this.numBuckets = numBuckets;
 	}
 
 	public static FilterTable create(int bitsPerTag, int numBuckets, int maxKeys) {
@@ -75,53 +75,29 @@ class FilterTable implements Serializable {
 		checkArgument(estBitSetSize < (long)Integer.MAX_VALUE, "Initialized BitSet too large, exceeds 32 bit boundary",
 				estBitSetSize);
 		BitSet memBlock = new BitSet((int) estBitSetSize);
-		return new FilterTable(memBlock, bitsPerTag, maxKeys);
-	}
-
-	class TagResult {
-		private final boolean success;
-		private final int oldTag;
-
-		public TagResult(boolean success, int oldTag) {
-			this.success = success;
-			// oldTag is only set if we kicked another tag out
-			this.oldTag = oldTag;
-		}
-
-		public boolean isSuccess() {
-			return success;
-		}
-
-		public int getOldTag() {
-			return oldTag;
-		}
-
+		return new FilterTable(memBlock, bitsPerTag, maxKeys,numBuckets);
 	}
 
 	
-	public TagResult insertTagIntoBucket(int bucketIndex, int tag, boolean kickOnFull) {
+	public boolean insertToBucket(int bucketIndex, int tag) {
 
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (readTag(bucketIndex, i) == 0) {
 				writeTag(bucketIndex, i, tag);
-				return new TagResult(true, 0);
+				return true;
 			}
 		}
-		if (kickOnFull) {
-			// only get here if bucket is full :(
-			// pick a random victim to kick from bucket if full
-			// insert our new item and hand back kicked one
-			int randomBucketPosition = rando.nextInt(CuckooFilter.BUCKET_SIZE);
-			int oldTag = readTag(bucketIndex, randomBucketPosition);
-			assert oldTag != 0;// should only get here if bucket is full...so no
-								// zeros
-			writeTag(bucketIndex, randomBucketPosition, tag);
-			return new TagResult(true, oldTag);
-		}
-		return new TagResult(false, 0);
+		return false;
 	}
-
-	public boolean findTagInBuckets(int bucketIndex1, int bucketIndex2, int tag) {
+	public int swapRandomTagInBucket(int bucketIndex,int tag)
+	{
+		int randomBucketPosition = rando.nextInt(CuckooFilter.BUCKET_SIZE);
+		int oldTag = readTag(bucketIndex, randomBucketPosition);
+		assert oldTag != 0;
+		writeTag(bucketIndex, randomBucketPosition, tag);
+		return oldTag;
+	}
+	public boolean findTag(int bucketIndex1, int bucketIndex2, int tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if ((readTag(bucketIndex1, i) == tag) || (readTag(bucketIndex2, i) == tag))
 				return true;
@@ -133,7 +109,7 @@ class FilterTable implements Serializable {
 		return memBlock.size();
 	}
 
-	public boolean deleteTagInBucket(int bucketIndex, int tag) {
+	public boolean deleteFromBucket(int bucketIndex, int tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (readTag(bucketIndex, i) == tag) {
 				writeTag(bucketIndex, i, 0);
@@ -165,6 +141,13 @@ class FilterTable implements Serializable {
 	}
 
 	private int getTagOffset(int bucketIndex, int posInBucket) {
+		/*
+		 * This is why it is important that numBuckets is a power of 2. Look up modulo
+		 * bias. Taking a remainder to fit a number into a range will
+		 * always produce a bias towards certain numbers depending on your divisor
+		 * unless the divisor is a power of 2.
+		 */
+		//memory offset
 		return (bucketIndex * CuckooFilter.BUCKET_SIZE * bitsPerTag) + (posInBucket*bitsPerTag);
 	}
 
@@ -176,18 +159,18 @@ class FilterTable implements Serializable {
 		if (object instanceof FilterTable) {
 			FilterTable that = (FilterTable) object;
 			return this.bitsPerTag == that.bitsPerTag && this.memBlock.equals(that.memBlock)
-					 && this.maxKeys == that.maxKeys;
+					 && this.maxKeys == that.maxKeys && this.numBuckets==that.numBuckets;
 		}
 		return false;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bitsPerTag, memBlock, maxKeys);
+		return Objects.hash(bitsPerTag, memBlock, maxKeys,numBuckets);
 	}
 
 	public FilterTable copy() {
-		return new FilterTable((BitSet) memBlock.clone(), bitsPerTag,  maxKeys);
+		return new FilterTable((BitSet) memBlock.clone(), bitsPerTag,  maxKeys,numBuckets);
 	}
 
 }

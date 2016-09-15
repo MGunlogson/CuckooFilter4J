@@ -27,6 +27,7 @@ package cuckooforjava;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 import org.junit.Test;
 
@@ -84,15 +85,15 @@ public class TestIndexTagCalc {
 	@Test
 	public void tagIndexBitsUsed() {
 		// manual instantiation to force salts to be static
-		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(),
+		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.Murmur3_32);
-		IndexTagCalc<Integer> indexer = new IndexTagCalc<Integer>(hasher, 128, 4);
+		IndexTagCalc<Integer> indexer = new IndexTagCalc<>(hasher, 128, 4);
 		int setBitsIndex = 0;
 		int setBitsTag = 0;
 		// should be enough to set all bits being used...
-		for (int i = 0; i < 12800; i++) {
+		for (int i = 0; i < 12345; i++) {
 			BucketAndTag bt = indexer.generate(i);
-			setBitsIndex |= bt.bucketIndex;
+			setBitsIndex |= bt.index;
 			setBitsTag |= bt.tag;
 		}
 		// will be true if we're using the right number of bits for tag and
@@ -134,7 +135,19 @@ public class TestIndexTagCalc {
 		new ClassSanityTester().setDefault(SerializableSaltedHasher.class, getUnsaltedHasher()).setDefault(int.class, 8)
 				.testNulls(IndexTagCalc.class);
 	}
-
+	@Test
+	public void brokenAltIndex() {
+		Random rando = new Random();
+		IndexTagCalc<Integer> calc= new IndexTagCalc<>(Algorithm.Murmur3_32, Funnels.integerFunnel(),2048, 14);
+		for(int i=0;i<10000;i++)
+		{
+		BucketAndTag pos = calc.generate(rando.nextInt());
+		int altIndex=calc.altIndex(pos.index,pos.tag);
+		assertTrue(pos.index==calc.altIndex(altIndex,pos.tag));
+		}
+	}
+	
+	
 	@Test
 	public void testSerialize() {
 		SerializableTester.reserializeAndAssert(new IndexTagCalc<Integer>(getUnsaltedHasher(), 128, 4));
