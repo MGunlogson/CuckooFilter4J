@@ -22,7 +22,7 @@
  *SOFTWARE.
 */
 
-package cuckooforjava;
+package com.cuckooforjava;
 
 import com.google.common.hash.Funnel;
 import com.google.common.hash.PrimitiveSink;

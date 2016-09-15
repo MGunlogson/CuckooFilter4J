@@ -22,7 +22,7 @@
  *SOFTWARE.
 */
 
-package cuckooforjava;
+package com.cuckooforjava;
 
 import static org.junit.Assert.*;
 

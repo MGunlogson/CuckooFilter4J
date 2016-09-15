@@ -22,18 +22,18 @@
  *SOFTWARE.
 */
 
-package cuckooforjava;
+package com.cuckooforjava;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
 
+import com.cuckooforjava.CuckooFilter;
+import com.cuckooforjava.SerializableSaltedHasher.Algorithm;
 import com.google.common.hash.Funnels;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
-
-import cuckooforjava.SerializableSaltedHasher.Algorithm;
 
 public class TestCuckooFilter {
 

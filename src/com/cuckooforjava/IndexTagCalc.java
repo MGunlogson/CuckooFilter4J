@@ -22,7 +22,7 @@
  *SOFTWARE.
 */
 
-package cuckooforjava;
+package com.cuckooforjava;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -32,11 +32,10 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import com.cuckooforjava.SerializableSaltedHasher.Algorithm;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
-
-import cuckooforjava.SerializableSaltedHasher.Algorithm;
 
 class BucketAndTag {
 

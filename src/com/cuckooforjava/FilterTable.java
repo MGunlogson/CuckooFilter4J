@@ -22,7 +22,7 @@
  *SOFTWARE.
 */
 
-package cuckooforjava;
+package com.cuckooforjava;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
