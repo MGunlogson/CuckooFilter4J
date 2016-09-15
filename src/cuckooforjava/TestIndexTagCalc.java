@@ -135,19 +135,18 @@ public class TestIndexTagCalc {
 		new ClassSanityTester().setDefault(SerializableSaltedHasher.class, getUnsaltedHasher()).setDefault(int.class, 8)
 				.testNulls(IndexTagCalc.class);
 	}
+
 	@Test
 	public void brokenAltIndex() {
 		Random rando = new Random();
-		IndexTagCalc<Integer> calc= new IndexTagCalc<>(Algorithm.Murmur3_32, Funnels.integerFunnel(),2048, 14);
-		for(int i=0;i<10000;i++)
-		{
-		BucketAndTag pos = calc.generate(rando.nextInt());
-		int altIndex=calc.altIndex(pos.index,pos.tag);
-		assertTrue(pos.index==calc.altIndex(altIndex,pos.tag));
+		IndexTagCalc<Integer> calc = new IndexTagCalc<>(Algorithm.Murmur3_32, Funnels.integerFunnel(), 2048, 14);
+		for (int i = 0; i < 10000; i++) {
+			BucketAndTag pos = calc.generate(rando.nextInt());
+			int altIndex = calc.altIndex(pos.index, pos.tag);
+			assertTrue(pos.index == calc.altIndex(altIndex, pos.tag));
 		}
 	}
-	
-	
+
 	@Test
 	public void testSerialize() {
 		SerializableTester.reserializeAndAssert(new IndexTagCalc<Integer>(getUnsaltedHasher(), 128, 4));
@@ -156,7 +155,7 @@ public class TestIndexTagCalc {
 	// using this because otherwise internal state of salts in hasher will
 	// prevent equality comparisons
 	private SerializableSaltedHasher<Integer> getUnsaltedHasher() {
-		return new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32);
+		return new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32);
 	}
 
 }

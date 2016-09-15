@@ -1,4 +1,3 @@
-
 /*
  *MIT License
  *
@@ -138,7 +137,8 @@ public class TestCuckooFilter {
 				break;
 			}
 		}
-		assertTrue("Duplicate insert failed at " + failedAt + " Expected value is (2*BUCKET_SIZE)+victim cache = 9", failedAt == 9);
+		assertTrue("Duplicate insert failed at " + failedAt + " Expected value is (2*BUCKET_SIZE)+victim cache = 9",
+				failedAt == 9);
 	}
 
 	@Test
@@ -208,7 +208,6 @@ public class TestCuckooFilter {
 				(double) falsePositives / totalAttempts < 0.02);
 
 	}
-	
 
 	@Test
 	public void sanityTestVictimCache() {
@@ -217,93 +216,87 @@ public class TestCuckooFilter {
 		for (int i = 0; i < 9; i++) {
 			assertTrue(filter.put(42));
 		}
-		assertTrue(filter.getCount()==9);
+		assertTrue(filter.getCount() == 9);
 		for (int i = 0; i < 9; i++) {
 			assertTrue(filter.mightContain(42));
 			assertTrue(filter.delete(42));
 		}
 		assertFalse(filter.delete(42));
 		assertFalse(filter.mightContain(42));
-		assertTrue(filter.getCount()==0);
-		//at this point victim cache is in use since both buckets for 42 are full
-		
-		
+		assertTrue(filter.getCount() == 0);
+		// at this point victim cache is in use since both buckets for 42 are
+		// full
+
 	}
-	
+
 	@Test
 	public void testVictimCacheTagComparison() {
 		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
 
-		filter.hasVictim=true;
-		filter.victim = filter.new Victim(1,2);
-		BucketAndTag test1 =new BucketAndTag(filter.victim.i1, 2);
-		BucketAndTag test2 =new BucketAndTag(filter.victim.i2, 2);
+		filter.hasVictim = true;
+		filter.victim = filter.new Victim(1, 2);
+		BucketAndTag test1 = new BucketAndTag(filter.victim.i1, 2);
+		BucketAndTag test2 = new BucketAndTag(filter.victim.i2, 2);
 		assertTrue(filter.checkIsVictim(test1));
 		assertTrue(filter.checkIsVictim(test2));
 	}
-	
-	
+
 	@Test
-	public void sanityFillDeleteAllAndCheckABunchOfStuff() 
-	{
-		//test with different filter sizes
-		for(int k=1;k<20;k++)
-		{
-			int filterKeys= 20000*k;
-			CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), filterKeys, 0.01, Algorithm.Murmur3_32);
-			//repeatedly fill and drain filter
-			for(int j=0;j<3;j++)
-			{
+	public void sanityFillDeleteAllAndCheckABunchOfStuff() {
+		// test with different filter sizes
+		for (int k = 1; k < 20; k++) {
+			int filterKeys = 20000 * k;
+			CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), filterKeys, 0.01,
+					Algorithm.Murmur3_32);
+			// repeatedly fill and drain filter
+			for (int j = 0; j < 3; j++) {
 				stressFillDrainCheck(filter);
 			}
 		}
 	}
-	private void stressFillDrainCheck(CuckooFilter<Integer> filter)
-	{
-		int maxInsertedVal=0;
+
+	private void stressFillDrainCheck(CuckooFilter<Integer> filter) {
+		int maxInsertedVal = 0;
 		while (true) {
 			// go until filter totally full
-			if(!filter.put(maxInsertedVal))
-			{
+			if (!filter.put(maxInsertedVal)) {
 				break;
-				}
+			}
 			maxInsertedVal++;
 		}
-		//everything we added should be there
-		for(int i=0;i<maxInsertedVal;i++)
-		{
-			assertTrue("filter doesn't contain "+i+" with "+maxInsertedVal+" total insertions",filter.mightContain(i));
+		// everything we added should be there
+		for (int i = 0; i < maxInsertedVal; i++) {
+			assertTrue("filter doesn't contain " + i + " with " + maxInsertedVal + " total insertions",
+					filter.mightContain(i));
 		}
-		//delete everything we just added
-		//make three passes
-		//    first pass will get most
-		//    second pass should get any we deleted from "wrong" bucket
-		//    mathematically (almost)guaranteed to delete all items in filter if it's working properly 
-		int deleteCount=0;
-		for(int i=0;i<maxInsertedVal;i++)
-		{
-			if(filter.delete(i))
+		// delete everything we just added
+		// make three passes
+		// first pass will get most
+		// second pass should get any we deleted from "wrong" bucket
+		// mathematically (almost)guaranteed to delete all items in filter if
+		// it's working properly
+		int deleteCount = 0;
+		for (int i = 0; i < maxInsertedVal; i++) {
+			if (filter.delete(i))
 				deleteCount++;
 		}
-		//second pass
-		for(int i=0;i<maxInsertedVal;i++)
-		{
-			if(filter.delete(i))
+		// second pass
+		for (int i = 0; i < maxInsertedVal; i++) {
+			if (filter.delete(i))
 				deleteCount++;
 		}
-		//did we get everything?
-		assertTrue(maxInsertedVal==deleteCount);
-		//does filter know it's empty?
-		assertTrue(filter.getCount()==0);
-		
-		//just to make sure everything is properly "gone"
-		for(int i=0;i<maxInsertedVal;i++)
-		{
+		// did we get everything?
+		assertTrue(maxInsertedVal == deleteCount);
+		// does filter know it's empty?
+		assertTrue(filter.getCount() == 0);
+
+		// just to make sure everything is properly "gone"
+		for (int i = 0; i < maxInsertedVal; i++) {
 			assertFalse(filter.delete(i));
 		}
-		//and even more sure...should be zero false positives because filter is totally empty
-		for(int i=0;i<maxInsertedVal;i++)
-		{
+		// and even more sure...should be zero false positives because filter is
+		// totally empty
+		for (int i = 0; i < maxInsertedVal; i++) {
 			assertFalse(filter.mightContain(i));
 		}
 	}

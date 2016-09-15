@@ -47,7 +47,7 @@ public class TestSerializableSaltedHasher {
 
 	@Test(expected = NullPointerException.class)
 	public void testConsturctorNullArgs2() {
-		new SerializableSaltedHasher<Object>(null, TestUtils.BAD_FUNNEL);
+		new SerializableSaltedHasher<Integer>(null, Funnels.integerFunnel());
 	}
 
 	@Test

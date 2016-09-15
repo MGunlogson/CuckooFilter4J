@@ -99,9 +99,9 @@ public final class CuckooFilter<T> implements Serializable {
 		checkNotNull(funnel);
 		int tagBits = getBitsPerItemForFpRate(fpp);
 		int numBuckets = getBucketsNeeded(maxKeys);
-		IndexTagCalc<T> hasher = new IndexTagCalc<T>(hashAlgorithm, funnel, numBuckets, tagBits);
+		IndexTagCalc<T> hasher = new IndexTagCalc<>(hashAlgorithm, funnel, numBuckets, tagBits);
 		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets, maxKeys);
-		return new CuckooFilter<T>(hasher, filtertbl, 0);
+		return new CuckooFilter<>(hasher, filtertbl, 0);
 
 	}
 
@@ -167,18 +167,16 @@ public final class CuckooFilter<T> implements Serializable {
 
 		hasVictim = true;
 		victim = new Victim(curIndex, curTag);
-		
+
 		count++;// technically victim is in table
 		return true;// technically victim still got put somewhere
 	}
 
 	private void insertIfVictim() {
-		if (hasVictim) {
-			// trying to insert when filter has victim can create a second
-			// victim!
-			if (table.insertToBucket(victim.i1, victim.tag) || table.insertToBucket(victim.i2, victim.tag)) {
-				hasVictim = false;
-			}
+		// trying to insert when filter has victim can create a second
+		// victim!
+		if (hasVictim && (table.insertToBucket(victim.i1, victim.tag) || table.insertToBucket(victim.i2, victim.tag))) {
+			hasVictim = false;
 		}
 	}
 
@@ -186,8 +184,7 @@ public final class CuckooFilter<T> implements Serializable {
 	boolean checkIsVictim(BucketAndTag tagToCheck) {
 		checkNotNull(tagToCheck);
 		if (hasVictim) {
-			if (victim.tag == tagToCheck.tag && (tagToCheck.index == victim.i1 || tagToCheck.index== victim.i2))
-			{
+			if (victim.tag == tagToCheck.tag && (tagToCheck.index == victim.i1 || tagToCheck.index == victim.i2)) {
 				return true;
 			}
 		}
@@ -241,7 +238,7 @@ public final class CuckooFilter<T> implements Serializable {
 	}
 
 	public CuckooFilter<T> copy() {
-		return new CuckooFilter<T>(hasher.copy(), table.copy(), count);
+		return new CuckooFilter<>(hasher.copy(), table.copy(), count);
 	}
 
 }

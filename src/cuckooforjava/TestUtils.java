@@ -32,14 +32,6 @@ public final class TestUtils {
 
 	}
 
-	static final Funnel<Object> BAD_FUNNEL = new Funnel<Object>() {
-		private static final long serialVersionUID = 1L;
-
-		public void funnel(Object object, PrimitiveSink bytePrimitiveSink) {
-			bytePrimitiveSink.putInt(object.hashCode());
-		}
-	};
-
 }
 
 final class FakeFunnel implements Funnel<Integer> {

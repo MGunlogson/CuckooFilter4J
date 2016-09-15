@@ -1,4 +1,3 @@
-
 /*
  *MIT License
  *
@@ -34,7 +33,6 @@ import org.junit.Test;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
-
 
 public class TestFilterTable {
 
@@ -140,9 +138,9 @@ public class TestFilterTable {
 		assertTrue(table.insertToBucket(5, testTag));
 		assertTrue(table.insertToBucket(5, testTag));
 		assertFalse(table.insertToBucket(5, testTag));
-		//make sure table will give me a tag and swap
-		int swap=table.swapRandomTagInBucket(5, 6);
-		assertTrue("swapped tag is "+swap+" expected "+testTag,swap==testTag);
+		// make sure table will give me a tag and swap
+		int swap = table.swapRandomTagInBucket(5, 6);
+		assertTrue("swapped tag is " + swap + " expected " + testTag, swap == testTag);
 		assertTrue(table.findTag(5, 1, 6));
 		assertTrue(table.findTag(1, 5, 6));
 	}
@@ -155,26 +153,25 @@ public class TestFilterTable {
 		assertTrue(table.insertToBucket(5, 2));
 		assertTrue(table.insertToBucket(5, 3));
 		assertTrue(table.insertToBucket(5, 4));
-		//make sure table will give me a tag and swap
-		int swap=5;
-		for(int i=0;i<1000;i++)
-		{
-			swap=table.swapRandomTagInBucket(5, swap);
+		// make sure table will give me a tag and swap
+		int swap = 5;
+		for (int i = 0; i < 1000; i++) {
+			swap = table.swapRandomTagInBucket(5, swap);
 		}
-		HashSet<Integer> tagVals= new HashSet<>();
+		HashSet<Integer> tagVals = new HashSet<>();
 		tagVals.add(swap);
 		tagVals.add(table.readTag(5, 0));
 		tagVals.add(table.readTag(5, 1));
 		tagVals.add(table.readTag(5, 2));
 		tagVals.add(table.readTag(5, 3));
-		assertTrue(tagVals.size()==5);
+		assertTrue(tagVals.size() == 5);
 		assertTrue(tagVals.contains(1));
 		assertTrue(tagVals.contains(2));
 		assertTrue(tagVals.contains(3));
 		assertTrue(tagVals.contains(4));
 		assertTrue(tagVals.contains(5));
 	}
-	
+
 	@Test
 	public void testBitBleedWithinBucket() {
 		int canaryTag = 0b11111111111111111111111111111111;

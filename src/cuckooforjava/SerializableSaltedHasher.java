@@ -151,7 +151,7 @@ public class SerializableSaltedHasher<T> implements Serializable {
 
 	public SerializableSaltedHasher<T> copy() {
 
-		return new SerializableSaltedHasher<T>(seedNSalt,addlSipSeed, SerializationUtils.clone(funnel), alg);
+		return new SerializableSaltedHasher<>(seedNSalt,addlSipSeed, SerializationUtils.clone(funnel), alg);
 	}
 
 }

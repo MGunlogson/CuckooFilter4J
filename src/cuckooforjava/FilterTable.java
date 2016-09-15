@@ -39,14 +39,15 @@ import com.google.common.math.LongMath;
 
 class FilterTable implements Serializable {
 	/**
-	 * NOTE: for speed, we don't check for inserts into invalid bucket indexes or bucket positions!
+	 * NOTE: for speed, we don't check for inserts into invalid bucket indexes
+	 * or bucket positions!
 	 */
 	private static final long serialVersionUID = 4172048932165857538L;
 	/*
 	 * NOTE: Google's Guava library uses a custom BitSet implementation that
 	 * looks to be adapted from the Lucene project. Guava project notes show
 	 * this seems to be done for faster serialization and support for
-	 * longs(giant filters) 
+	 * longs(giant filters)
 	 */
 	private final BitSet memBlock;
 	private final int bitsPerTag;
@@ -54,7 +55,7 @@ class FilterTable implements Serializable {
 	private int maxKeys;
 	private int numBuckets;
 
-	private FilterTable(BitSet memBlock, int bitsPerTag, int maxKeys,int numBuckets) {
+	private FilterTable(BitSet memBlock, int bitsPerTag, int maxKeys, int numBuckets) {
 		this.bitsPerTag = bitsPerTag;
 		this.memBlock = memBlock;
 		this.rando = new Random();
@@ -64,7 +65,7 @@ class FilterTable implements Serializable {
 
 	public static FilterTable create(int bitsPerTag, int numBuckets, int maxKeys) {
 		checkArgument(bitsPerTag < 28, "tagBits (%s) must be < 28", bitsPerTag);
-		//shorter fingerprints don't give us a good fill capacity
+		// shorter fingerprints don't give us a good fill capacity
 		checkArgument(bitsPerTag > 4, "tagBits (%s) must be > 4", bitsPerTag);
 		checkArgument(numBuckets > 1, "numBuckets (%s) must be > 1", numBuckets);
 		checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1", maxKeys);
@@ -72,13 +73,12 @@ class FilterTable implements Serializable {
 		// table size
 		long bitsPerBucket = IntMath.checkedMultiply(CuckooFilter.BUCKET_SIZE, bitsPerTag);
 		long estBitSetSize = LongMath.checkedMultiply(bitsPerBucket, (long) numBuckets);
-		checkArgument(estBitSetSize < (long)Integer.MAX_VALUE, "Initialized BitSet too large, exceeds 32 bit boundary",
+		checkArgument(estBitSetSize < (long) Integer.MAX_VALUE, "Initialized BitSet too large, exceeds 32 bit boundary",
 				estBitSetSize);
 		BitSet memBlock = new BitSet((int) estBitSetSize);
-		return new FilterTable(memBlock, bitsPerTag, maxKeys,numBuckets);
+		return new FilterTable(memBlock, bitsPerTag, maxKeys, numBuckets);
 	}
 
-	
 	public boolean insertToBucket(int bucketIndex, int tag) {
 
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
@@ -89,14 +89,15 @@ class FilterTable implements Serializable {
 		}
 		return false;
 	}
-	public int swapRandomTagInBucket(int bucketIndex,int tag)
-	{
+
+	public int swapRandomTagInBucket(int bucketIndex, int tag) {
 		int randomBucketPosition = rando.nextInt(CuckooFilter.BUCKET_SIZE);
 		int oldTag = readTag(bucketIndex, randomBucketPosition);
 		assert oldTag != 0;
 		writeTag(bucketIndex, randomBucketPosition, tag);
 		return oldTag;
 	}
+
 	public boolean findTag(int bucketIndex1, int bucketIndex2, int tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if ((readTag(bucketIndex1, i) == tag) || (readTag(bucketIndex2, i) == tag))
@@ -118,7 +119,8 @@ class FilterTable implements Serializable {
 		}
 		return false;
 	}
-@VisibleForTesting
+
+	@VisibleForTesting
 	int readTag(int bucketIndex, int posInBucket) {
 		int tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		int tag = 0;
@@ -126,11 +128,12 @@ class FilterTable implements Serializable {
 		// looping over true bits per nextBitSet javadocs
 		for (int i = memBlock.nextSetBit(tagStartIdx); i >= 0 && i < tagEndIdx; i = memBlock.nextSetBit(i + 1)) {
 			// set corresponding bit in tag
-			tag |= 1 << (i-tagStartIdx);
+			tag |= 1 << (i - tagStartIdx);
 		}
 		return tag;
 	}
-@VisibleForTesting
+
+	@VisibleForTesting
 	void writeTag(int bucketIndex, int posInBucket, int tag) {
 		int tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		// BIT BANGIN YEAAAARRHHHGGGHHH
@@ -142,13 +145,13 @@ class FilterTable implements Serializable {
 
 	private int getTagOffset(int bucketIndex, int posInBucket) {
 		/*
-		 * This is why it is important that numBuckets is a power of 2. Look up modulo
-		 * bias. Taking a remainder to fit a number into a range will
-		 * always produce a bias towards certain numbers depending on your divisor
-		 * unless the divisor is a power of 2.
+		 * This is why it is important that numBuckets is a power of 2. Look up
+		 * modulo bias. Taking a remainder to fit a number into a range will
+		 * always produce a bias towards certain numbers depending on your
+		 * divisor unless the divisor is a power of 2.
 		 */
-		//memory offset
-		return (bucketIndex * CuckooFilter.BUCKET_SIZE * bitsPerTag) + (posInBucket*bitsPerTag);
+		// memory offset
+		return (bucketIndex * CuckooFilter.BUCKET_SIZE * bitsPerTag) + (posInBucket * bitsPerTag);
 	}
 
 	@Override
@@ -159,18 +162,18 @@ class FilterTable implements Serializable {
 		if (object instanceof FilterTable) {
 			FilterTable that = (FilterTable) object;
 			return this.bitsPerTag == that.bitsPerTag && this.memBlock.equals(that.memBlock)
-					 && this.maxKeys == that.maxKeys && this.numBuckets==that.numBuckets;
+					&& this.maxKeys == that.maxKeys && this.numBuckets == that.numBuckets;
 		}
 		return false;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bitsPerTag, memBlock, maxKeys,numBuckets);
+		return Objects.hash(bitsPerTag, memBlock, maxKeys, numBuckets);
 	}
 
 	public FilterTable copy() {
-		return new FilterTable((BitSet) memBlock.clone(), bitsPerTag,  maxKeys,numBuckets);
+		return new FilterTable((BitSet) memBlock.clone(), bitsPerTag, maxKeys, numBuckets);
 	}
 
 }
