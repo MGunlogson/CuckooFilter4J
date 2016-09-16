@@ -30,6 +30,9 @@ My personal thanks goes out to the authors of those libaries, their code helped 
 
 Usage
 -------------------
+
+Below is a full example of creating and using the filter. Many more examples can be  found in the TEST(link) and BENCHMARK(link) sections of the project.
+
 ```java
 import com.cuckooforjava.CuckooFilter;
 import com.google.common.hash.Funnels;
