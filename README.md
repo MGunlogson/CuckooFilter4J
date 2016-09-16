@@ -41,7 +41,7 @@ public class Example {
 
 	public static void main(String[] args) {
 		// create
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000);
+		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 100000);
 		// insert
 		if (filter.put(42)) {
 			System.out.println("Insert Success!");
