@@ -85,6 +85,6 @@ Hash collision attacks are theoretically possible against Cuckoo filters (as wit
 
 Benchmark Results
 ------------------------------
-NEED TO MAKE THIS STUFF
+Nothing formal yet, but preliminary tests show that this implenetation is about 30% slower than Guava's Bloom filters at the moment
 
 
