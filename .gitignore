@@ -12,6 +12,8 @@
 hs_err_pid*
 /target/
 
+# javadoc
+doc/
 
 # maven
 target/
