@@ -32,7 +32,6 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import com.cuckooforjava.SerializableSaltedHasher.Algorithm;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
@@ -55,7 +54,7 @@ class IndexTagCalc<T> implements Serializable {
 	private final int numBuckets;
 	private final int tagBits;
 
-	public IndexTagCalc(Algorithm hasherAlg, Funnel<? super T> funnel, int numBuckets, int tagBits) {
+	public IndexTagCalc(CuckooFilter.Algorithm hasherAlg, Funnel<? super T> funnel, int numBuckets, int tagBits) {
 		// instantiated saltedhasher will check its own args :)
 		this(new SerializableSaltedHasher<>(hasherAlg, funnel), numBuckets, tagBits);
 	}
@@ -132,9 +131,10 @@ class IndexTagCalc<T> implements Serializable {
 
 	public int altIndex(int bucketIndex, int tag) {
 		/* 0x5bd1e995 hash constant from MurmurHash2...interesting. also used in
-		 * reference implementation https://github.com/efficient/cuckoofilter/ */
-		//flip bits if negative
+		 * reference implementation https://github.com/efficient/cuckoofilter/ 
+		 */
 		int altIndex= bucketIndex ^ (tag * 0x5bd1e995);
+		//flip bits if negative
 		if(altIndex<0)
 			altIndex = ~altIndex;
 		//now pull into valid range

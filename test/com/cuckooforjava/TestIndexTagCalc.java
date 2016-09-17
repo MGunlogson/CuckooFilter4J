@@ -31,7 +31,7 @@ import java.util.Random;
 
 import org.junit.Test;
 
-import com.cuckooforjava.SerializableSaltedHasher.Algorithm;
+import com.cuckooforjava.CuckooFilter.Algorithm;
 import com.google.common.hash.Funnels;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
@@ -42,12 +42,19 @@ public class TestIndexTagCalc {
 	@Test(expected = IllegalArgumentException.class)
 	public void filterTooBig() {
 		new IndexTagCalc<Integer>(Algorithm.Murmur3_32, Funnels.integerFunnel(), Integer.MAX_VALUE, 1);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void filterTooBig2() {
 		new IndexTagCalc<Integer>(Algorithm.Murmur3_32, Funnels.integerFunnel(), 1, Integer.MAX_VALUE);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs() {
 		new IndexTagCalc<Integer>(Algorithm.Murmur3_32, Funnels.integerFunnel(), 0, 1);
+	}
+	@Test(expected = IllegalArgumentException.class)
+	public void testInvalidArgs2() {
 		new IndexTagCalc<Integer>(Algorithm.Murmur3_32, Funnels.integerFunnel(), 1, 0);
 	}
 

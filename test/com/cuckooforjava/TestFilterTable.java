@@ -58,7 +58,7 @@ public class TestFilterTable {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testFilterTooBig() {
-		FilterTable.create(28, 1000000, 200000000);
+		FilterTable.create(28, 100000000, 200000000);
 	}
 
 	@Test
@@ -181,6 +181,24 @@ public class TestFilterTable {
 		table.writeTag(5, 2, canaryTag);
 		assertTrue(table.readTag(5, 1) == 0);
 		assertTrue(table.readTag(5, 3) == 0);
+	}
+	
+	
+	@Test
+	public void testDeleteCorrectBits() {
+		int canaryTag = 0b111111111111;
+		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		// buckets can hold 4 tags
+		table.writeTag(5, 0, canaryTag);
+		table.writeTag(5, 1, canaryTag);
+		table.writeTag(5, 2, canaryTag);
+		table.writeTag(5, 3, canaryTag);
+		table.deleteTag(5, 1);
+		table.deleteTag(5, 2);
+		assertTrue(table.readTag(5, 1) == 0);
+		assertTrue(table.readTag(5, 2) == 0);
+		assertTrue(table.readTag(5, 0) == canaryTag);
+		assertTrue(table.readTag(5, 3) == canaryTag);
 	}
 
 	@Test

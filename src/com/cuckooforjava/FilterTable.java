@@ -38,16 +38,15 @@ import com.google.common.math.IntMath;
 import com.google.common.math.LongMath;
 
 class FilterTable implements Serializable {
-	/**
-	 * NOTE: for speed, we don't check for inserts into invalid bucket indexes
-	 * or bucket positions!
-	 */
 	private static final long serialVersionUID = 4172048932165857538L;
 	/*
 	 * NOTE: Google's Guava library uses a custom BitSet implementation that
 	 * looks to be adapted from the Lucene project. Guava project notes show
 	 * this seems to be done for faster serialization and support for
 	 * longs(giant filters)
+	 * 
+	 *NOTE: for speed, we don't check for inserts into invalid bucket indexes
+	 * or bucket positions!
 	 */
 	private final BitSet memBlock;
 	private final int bitsPerTag;
@@ -64,6 +63,7 @@ class FilterTable implements Serializable {
 	}
 
 	public static FilterTable create(int bitsPerTag, int numBuckets, int maxKeys) {
+		//why would this ever happen?
 		checkArgument(bitsPerTag < 28, "tagBits (%s) must be < 28", bitsPerTag);
 		// shorter fingerprints don't give us a good fill capacity
 		checkArgument(bitsPerTag > 4, "tagBits (%s) must be > 4", bitsPerTag);
@@ -113,7 +113,7 @@ class FilterTable implements Serializable {
 	public boolean deleteFromBucket(int bucketIndex, int tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (readTag(bucketIndex, i) == tag) {
-				writeTag(bucketIndex, i, 0);
+				deleteTag(bucketIndex,i);
 				return true;
 			}
 		}
@@ -132,6 +132,7 @@ class FilterTable implements Serializable {
 		}
 		return tag;
 	}
+	
 
 	@VisibleForTesting
 	void writeTag(int bucketIndex, int posInBucket, int tag) {
@@ -139,18 +140,18 @@ class FilterTable implements Serializable {
 		// BIT BANGIN YEAAAARRHHHGGGHHH
 		for (int i = 0; i < bitsPerTag; i++) {
 			// second arg just does bit test in tag
-			memBlock.set(tagStartIdx + i, (tag & (1L << i)) != 0);
+			memBlock.set(tagStartIdx + i, (tag & (1L<< i))!=0);
 		}
 	}
+	
+	@VisibleForTesting
+	void deleteTag(int bucketIndex, int posInBucket) {
+		int tagStartIdx = getTagOffset(bucketIndex, posInBucket);
+		memBlock.clear(tagStartIdx, tagStartIdx+bitsPerTag);
+		}
+	
 
 	private int getTagOffset(int bucketIndex, int posInBucket) {
-		/*
-		 * This is why it is important that numBuckets is a power of 2. Look up
-		 * modulo bias. Taking a remainder to fit a number into a range will
-		 * always produce a bias towards certain numbers depending on your
-		 * divisor unless the divisor is a power of 2.
-		 */
-		// memory offset
 		return (bucketIndex * CuckooFilter.BUCKET_SIZE * bitsPerTag) + (posInBucket * bitsPerTag);
 	}
 

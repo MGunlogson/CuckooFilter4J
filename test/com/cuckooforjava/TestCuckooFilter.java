@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import com.cuckooforjava.CuckooFilter;
-import com.cuckooforjava.SerializableSaltedHasher.Algorithm;
+import com.cuckooforjava.CuckooFilter.Algorithm;
 import com.google.common.hash.Funnels;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
@@ -303,9 +303,20 @@ public class TestCuckooFilter {
 
 	@Test
 	public void testEquals() {
+		CuckooFilter<Integer> partFull=CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> full=CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		for(int i=0;i<1000000;i++)
+		{
+			assertTrue(partFull.put(i));
+		}
+		for(int i=0;;i++)
+		{
+			if(!full.put(i))
+				break;
+		}
 		new EqualsTester()
-				// we don't test arg2 because numbuckets is only used to create
-				// BitSet of estimated proper size.
+				.addEqualityGroup(partFull)
+				.addEqualityGroup(full)
 				.addEqualityGroup(CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32))
 				.addEqualityGroup(CuckooFilter.create(Funnels.longFunnel(), 2000000, 0.01, Algorithm.Murmur3_32))
 				.addEqualityGroup(CuckooFilter.create(Funnels.integerFunnel(), 1000000, 0.01, Algorithm.Murmur3_32))
@@ -315,12 +326,43 @@ public class TestCuckooFilter {
 	}
 
 	@Test
-	public void testCopy() {
-		CuckooFilter<Integer> table = CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
-		CuckooFilter<Integer> tableCopy = table.copy();
-		assertTrue(tableCopy.equals(table));
-		assertNotSame(table, tableCopy);
+	public void testCopyEmpty() {
+		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filterCopy = filter.copy();
+		assertTrue(filterCopy.equals(filter));
+		assertNotSame(filter, filterCopy);
 	}
+	
+	
+	@Test
+	public void testCopyPartFull() {
+		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		for(int i=0;i<1000000;i++)
+		{
+			assertTrue(filter.put(i));
+		}
+		CuckooFilter<Integer> filterCopy = filter.copy();
+		assertTrue(filterCopy.equals(filter));
+		assertNotSame(filter, filterCopy);
+	}
+	
+	
+	@Test
+	public void testCopyFull() {
+		//totally full will test victim cache as well
+		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		//fill until victim cache full
+		for(int i=0;;i++)
+		{
+			// go until filter totally full
+			if (!filter.put(i)) 
+				break;
+		}
+		CuckooFilter<Integer> filterCopy = filter.copy();
+		assertTrue(filterCopy.equals(filter));
+		assertNotSame(filter, filterCopy);
+	}
+	
 
 	@Test
 	public void autoTestNulls() {
@@ -329,9 +371,30 @@ public class TestCuckooFilter {
 	}
 
 	@Test
-	public void testSerialize() {
+	public void testSerializeEmpty() {
 		SerializableTester.reserializeAndAssert(
 				CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32));
+	}
+	
+	@Test
+	public void testSerializePartFull() {
+		CuckooFilter<Integer> filter= CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		for(int i=0;i<1000000;i++)
+		{
+			assertTrue(filter.put(i));
+		}
+		SerializableTester.reserializeAndAssert(filter);
+	}
+	
+	@Test
+	public void testSerializeFull() {
+		CuckooFilter<Integer> filter= CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		for(int i=0;;i++)
+		{
+			if(!filter.put(i))
+				break;
+		}
+		SerializableTester.reserializeAndAssert(filter);
 	}
 
 }

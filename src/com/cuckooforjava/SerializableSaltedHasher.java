@@ -1,25 +1,17 @@
 /*
- *MIT License
- *
- *Copyright (c) 2016 Mark Gunlogson
- *
- *Permission is hereby granted, free of charge, to any person obtaining a copy
- *of this software and associated documentation files (the "Software"), to deal
- *in the Software without restriction, including without limitation the rights
- *to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *copies of the Software, and to permit persons to whom the Software is
- *furnished to do so, subject to the following conditions:
- *
- *The above copyright notice and this permission notice shall be included in all
- *copies or substantial portions of the Software.
- *
- *THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- *SOFTWARE.
+   Copyright 2016 Mark Gunlogson
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.TWARE.
 */
 
 package com.cuckooforjava;
@@ -35,8 +27,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang3.SerializationUtils;
-
+import com.cuckooforjava.CuckooFilter.Algorithm;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
@@ -57,18 +48,7 @@ public class SerializableSaltedHasher<T> implements Serializable {
 	private transient HashFunction hasher;
 	private final Funnel<? super T> funnel;
 
-	public enum Algorithm {
-		Murmur3_32(0), Murmur3_128(1), sha1(2), sha256(2),sipHash24(3);
-		private final int id;
 
-		Algorithm(int id) {
-			this.id = id;
-		}
-
-		public int getValue() {
-			return id;
-		}
-	}
 
 	public SerializableSaltedHasher(Algorithm alg, Funnel<? super T> funnel) {
 		checkNotNull(alg);
@@ -151,7 +131,7 @@ public class SerializableSaltedHasher<T> implements Serializable {
 
 	public SerializableSaltedHasher<T> copy() {
 
-		return new SerializableSaltedHasher<>(seedNSalt,addlSipSeed, SerializationUtils.clone(funnel), alg);
+		return new SerializableSaltedHasher<>(seedNSalt,addlSipSeed, funnel, alg);
 	}
 
 }
