@@ -1,13 +1,8 @@
 #A unit tested Cuckoo filter for Java, built using Guava.#
 
 
-Get The Code!!!
---------------------
-* **Maven Package**
-* **Ant Package**
-* **Gradle Package**
-
-
+Code will be on maven etc... soon, interface is **NOT** finalized. I'm planning to ditch BitSet and replace it with my own implenetation to get beyond the 32 bit size bounary. 
+========================
 
 
 About
