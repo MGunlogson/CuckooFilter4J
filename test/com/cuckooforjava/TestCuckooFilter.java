@@ -34,7 +34,7 @@ public class TestCuckooFilter {
 		CuckooFilter.create(Funnels.integerFunnel(), 2000000, 1, Algorithm.Murmur3_32);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = OutOfMemoryError.class)
 	public void testInvalidArgs2() {
 		CuckooFilter.create(Funnels.integerFunnel(), Integer.MAX_VALUE, 0.01, Algorithm.Murmur3_32);
 	}
@@ -54,10 +54,6 @@ public class TestCuckooFilter {
 		CuckooFilter.create(Funnels.integerFunnel(), 2000000, -0.01, Algorithm.Murmur3_32);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidArgs6() {
-		CuckooFilter.create(Funnels.integerFunnel(), 200000000);
-	}
 
 	@Test
 	public void sanityFalseNegative() {
@@ -359,7 +355,7 @@ public class TestCuckooFilter {
 	@Test
 	public void autoTestNulls() {
 		// chose 15 for int so it passes checks
-		new ClassSanityTester().setDefault(int.class, 15).setDefault(double.class, 0.001).testNulls(CuckooFilter.class);
+		new ClassSanityTester().setDefault(int.class, 15).setDefault(long.class, 15L).setDefault(double.class, 0.001).testNulls(CuckooFilter.class);
 	}
 
 	@Test

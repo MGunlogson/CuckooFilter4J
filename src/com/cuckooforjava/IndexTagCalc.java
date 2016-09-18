@@ -30,10 +30,10 @@ import com.google.common.hash.HashCode;
 
 class BucketAndTag {
 
-	public final int index;
-	public final int tag;
+	public final long index;
+	public final long tag;
 
-	BucketAndTag(int bucketIndex, int tag) {
+	BucketAndTag(long bucketIndex, long tag) {
 		this.index = bucketIndex;
 		this.tag = tag;
 	}
@@ -43,16 +43,16 @@ class IndexTagCalc<T> implements Serializable {
 	private static final long serialVersionUID = -2052598678199099089L;
 
 	private final SerializableSaltedHasher<T> hasher;
-	private final int numBuckets;
+	private final long numBuckets;
 	private final int tagBits;
 
-	public IndexTagCalc(CuckooFilter.Algorithm hasherAlg, Funnel<? super T> funnel, int numBuckets, int tagBits) {
+	public IndexTagCalc(CuckooFilter.Algorithm hasherAlg, Funnel<? super T> funnel, long numBuckets, int tagBits) {
 		// instantiated saltedhasher will check its own args :)
 		this(new SerializableSaltedHasher<>(hasherAlg, funnel), numBuckets, tagBits);
 	}
 
 	@VisibleForTesting
-	public IndexTagCalc(SerializableSaltedHasher<T> hasher, int numBuckets, int tagBits) {
+	public IndexTagCalc(SerializableSaltedHasher<T> hasher, long numBuckets, int tagBits) {
 		checkNotNull(hasher);
 		checkArgument((numBuckets & -numBuckets) == numBuckets, "Number of buckets (%s) must be a multiple of two",
 				numBuckets);
@@ -69,13 +69,13 @@ class IndexTagCalc<T> implements Serializable {
 		this.tagBits = tagBits;
 	}
 
-	int getNumBuckets() {
+	long getNumBuckets() {
 		return numBuckets;
 	}
 
-	int getIndexTagBitsNotUsed(int numBuckets) {
+	int getIndexTagBitsNotUsed(long numBuckets) {
 		// how many bits of randomness do we need to create a bucketIndex?
-		return Integer.numberOfLeadingZeros(numBuckets);
+		return Long.numberOfLeadingZeros(numBuckets);
 	}
 
 	public BucketAndTag generate(T item) {
@@ -86,8 +86,8 @@ class IndexTagCalc<T> implements Serializable {
 		 * offset is BUCKET_SIZE*bucketIndex*tagBits, we can never use more than
 		 * 32 bits of hash for tagBits+bucketIndex
 		 */
-		int tag;
-		int bucketIndex;
+		long tag;
+		long bucketIndex;
 		HashCode code = hasher.hashObj(item);
 		int hashVal = code.asInt();
 		bucketIndex = getBucketIndex(hashVal);
@@ -115,17 +115,17 @@ class IndexTagCalc<T> implements Serializable {
 	}
 
 	@VisibleForTesting
-	int getBucketIndex(int hashVal) {
+	long getBucketIndex(int hashVal) {
 		// take index bits from left end of hash
 		//just use everything we're not using for tag, why not
 		return hashIndex(hashVal >>> tagBits);
 	}
 
-	public int altIndex(int bucketIndex, int tag) {
+	public long altIndex(long bucketIndex, long tag) {
 		/* 0x5bd1e995 hash constant from MurmurHash2...interesting. also used in
 		 * reference implementation https://github.com/efficient/cuckoofilter/ 
 		 */
-		int altIndex= bucketIndex ^ (tag * 0x5bd1e995);
+		long altIndex= bucketIndex ^ (tag * 0x5bd1e995);
 		//flip bits if negative
 		if(altIndex<0)
 			altIndex = ~altIndex;
@@ -133,12 +133,12 @@ class IndexTagCalc<T> implements Serializable {
 		return hashIndex(altIndex);
 	}
 	
-	public int hashIndex(int index)
+	public long hashIndex(long altIndex)
 	{
 		/*we always need to return a bucket index within table range
 		 * if we try to range it later during read/write 
 		 * things will go terribly wrong since the index becomes circular */
-		return index % numBuckets;
+		return altIndex % numBuckets;
 	}
 
 	@Override

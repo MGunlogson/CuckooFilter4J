@@ -45,12 +45,7 @@ public class TestFilterTable {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testTagTooBig() {
-		FilterTable.create(30, 100, 10000);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testFilterTooBig() {
-		FilterTable.create(28, 100000000, 200000000);
+		FilterTable.create(60, 100, 10000);
 	}
 
 	@Test
@@ -59,7 +54,7 @@ public class TestFilterTable {
 		int testTag = 0b00000000000000000000000000011111;
 		for (int posInBucket = 0; posInBucket < 4; posInBucket++) {
 			for (int bucket = 0; bucket < 1000; bucket++) {
-				table.writeTag(bucket, posInBucket, testTag);
+				table.writeTagNoClear(bucket, posInBucket, testTag);
 			}
 			for (int bucket = 0; bucket < 1000; bucket++) {
 				assertTrue(table.readTag(bucket, posInBucket) == testTag);
@@ -76,7 +71,7 @@ public class TestFilterTable {
 			for (int bucket = 0; bucket < 1000; bucket++) {
 				// switch tag around a bit on each bucket insert
 				int tagMutate = testTag >>> posInBucket;
-				table.writeTag(bucket, posInBucket, tagMutate);
+				table.writeTagNoClear(bucket, posInBucket, tagMutate);
 			}
 		}
 		// now delete all
@@ -100,11 +95,11 @@ public class TestFilterTable {
 	public void testSimpleFindTag() {
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		int testTag = 0b00000000000000000000000000011111;
-		table.writeTag(1, 2, testTag);
+		table.writeTagNoClear(1, 2, testTag);
 		assertFalse(table.findTag(2, 3, testTag));
 		assertTrue(table.findTag(1, 3, testTag));
 		assertTrue(table.findTag(3, 1, testTag));
-		table.writeTag(2, 2, testTag);
+		table.writeTagNoClear(2, 2, testTag);
 		assertTrue(table.findTag(1, 2, testTag));
 	}
 
@@ -131,7 +126,7 @@ public class TestFilterTable {
 		assertTrue(table.insertToBucket(5, testTag));
 		assertFalse(table.insertToBucket(5, testTag));
 		// make sure table will give me a tag and swap
-		int swap = table.swapRandomTagInBucket(5, 6);
+		long swap = table.swapRandomTagInBucket(5, 6);
 		assertTrue("swapped tag is " + swap + " expected " + testTag, swap == testTag);
 		assertTrue(table.findTag(5, 1, 6));
 		assertTrue(table.findTag(1, 5, 6));
@@ -141,27 +136,27 @@ public class TestFilterTable {
 	public void testTagSwap2() {
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		// buckets can hold 4 tags
-		assertTrue(table.insertToBucket(5, 1));
-		assertTrue(table.insertToBucket(5, 2));
-		assertTrue(table.insertToBucket(5, 3));
-		assertTrue(table.insertToBucket(5, 4));
+		assertTrue(table.insertToBucket(5, 1L));
+		assertTrue(table.insertToBucket(5, 2L));
+		assertTrue(table.insertToBucket(5, 3L));
+		assertTrue(table.insertToBucket(5, 4L));
 		// make sure table will give me a tag and swap
-		int swap = 5;
+		long swap = 5;
 		for (int i = 0; i < 1000; i++) {
 			swap = table.swapRandomTagInBucket(5, swap);
 		}
-		HashSet<Integer> tagVals = new HashSet<>();
+		HashSet<Long> tagVals = new HashSet<>();
 		tagVals.add(swap);
 		tagVals.add(table.readTag(5, 0));
 		tagVals.add(table.readTag(5, 1));
 		tagVals.add(table.readTag(5, 2));
 		tagVals.add(table.readTag(5, 3));
 		assertTrue(tagVals.size() == 5);
-		assertTrue(tagVals.contains(1));
-		assertTrue(tagVals.contains(2));
-		assertTrue(tagVals.contains(3));
-		assertTrue(tagVals.contains(4));
-		assertTrue(tagVals.contains(5));
+		assertTrue(tagVals.contains(1L));
+		assertTrue(tagVals.contains(2L));
+		assertTrue(tagVals.contains(3L));
+		assertTrue(tagVals.contains(4L));
+		assertTrue(tagVals.contains(5L));
 	}
 
 	@Test
@@ -169,8 +164,8 @@ public class TestFilterTable {
 		int canaryTag = 0b11111111111111111111111111111111;
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		// buckets can hold 4 tags
-		table.writeTag(5, 0, canaryTag);
-		table.writeTag(5, 2, canaryTag);
+		table.writeTagNoClear(5, 0, canaryTag);
+		table.writeTagNoClear(5, 2, canaryTag);
 		assertTrue(table.readTag(5, 1) == 0);
 		assertTrue(table.readTag(5, 3) == 0);
 	}
@@ -181,10 +176,10 @@ public class TestFilterTable {
 		int canaryTag = 0b111111111111;
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		// buckets can hold 4 tags
-		table.writeTag(5, 0, canaryTag);
-		table.writeTag(5, 1, canaryTag);
-		table.writeTag(5, 2, canaryTag);
-		table.writeTag(5, 3, canaryTag);
+		table.writeTagNoClear(5, 0, canaryTag);
+		table.writeTagNoClear(5, 1, canaryTag);
+		table.writeTagNoClear(5, 2, canaryTag);
+		table.writeTagNoClear(5, 3, canaryTag);
 		table.deleteTag(5, 1);
 		table.deleteTag(5, 2);
 		assertTrue(table.readTag(5, 1) == 0);
@@ -198,8 +193,8 @@ public class TestFilterTable {
 		int canaryTag = 0b11111111111111111111111111111111;
 		FilterTable table = FilterTable.create(12, 1000, 2000000);
 		// buckets can hold 4 tags
-		table.writeTag(5, 0, canaryTag);
-		table.writeTag(5, 3, canaryTag);
+		table.writeTagNoClear(5, 0, canaryTag);
+		table.writeTagNoClear(5, 3, canaryTag);
 		// should be directly adjacent to positions we filled
 		assertTrue(table.readTag(4, 3) == 0);
 		assertTrue(table.readTag(6, 0) == 0);

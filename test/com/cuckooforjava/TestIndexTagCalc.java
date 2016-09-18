@@ -130,7 +130,7 @@ public class TestIndexTagCalc {
 	@Test
 	public void autoTestNulls() {
 		// chose 8 for int so it passes bucket and tag size checks
-		new ClassSanityTester().setDefault(SerializableSaltedHasher.class, getUnsaltedHasher()).setDefault(int.class, 8)
+		new ClassSanityTester().setDefault(SerializableSaltedHasher.class, getUnsaltedHasher()).setDefault(long.class, 8L).setDefault(int.class, 8)
 				.testNulls(IndexTagCalc.class);
 	}
 
@@ -140,7 +140,7 @@ public class TestIndexTagCalc {
 		IndexTagCalc<Integer> calc = new IndexTagCalc<>(Algorithm.Murmur3_32, Funnels.integerFunnel(), 2048, 14);
 		for (int i = 0; i < 10000; i++) {
 			BucketAndTag pos = calc.generate(rando.nextInt());
-			int altIndex = calc.altIndex(pos.index, pos.tag);
+			long altIndex = calc.altIndex(pos.index, pos.tag);
 			assertTrue(pos.index == calc.altIndex(altIndex, pos.tag));
 		}
 	}

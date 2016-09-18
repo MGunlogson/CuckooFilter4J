@@ -104,7 +104,7 @@ public final class CuckooFilter<T> implements Serializable {
 
 	private FilterTable table;
 	private IndexTagCalc<T> hasher;
-	private int count;
+	private long count;
 
 	@VisibleForTesting
 	Victim victim;
@@ -157,11 +157,11 @@ public final class CuckooFilter<T> implements Serializable {
 	 */
 	class Victim implements Serializable {
 		private static final long serialVersionUID = -984233593241086192L;
-		int i1;
-		int i2;
-		int tag;
+		long i1;
+		long i2;
+		long tag;
 
-		Victim(int bucketIndex, int tag) {
+		Victim(long bucketIndex, long tag) {
 			this.i1 = bucketIndex;
 			this.i2 = hasher.altIndex(bucketIndex, tag);
 			this.tag = tag;
@@ -198,7 +198,7 @@ public final class CuckooFilter<T> implements Serializable {
 	/**
 	 * Creates a Cuckoo filter.
 	 */
-	private CuckooFilter(IndexTagCalc<T> hasher, FilterTable table, int count, boolean hasVictim, Victim victim) {
+	private CuckooFilter(IndexTagCalc<T> hasher, FilterTable table, long count, boolean hasVictim, Victim victim) {
 		this.hasher = hasher;
 		this.table = table;
 		this.count = count;
@@ -320,7 +320,7 @@ public final class CuckooFilter<T> implements Serializable {
 		return create(funnel, maxKeys, DEFAULT_FP, hashAlgorithm);
 	}
 
-	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, double fpp,
+	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, long maxKeys, double fpp,
 			Algorithm hashAlgorithm) {
 		checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1, increase maxKeys", maxKeys);
 		checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
@@ -328,7 +328,7 @@ public final class CuckooFilter<T> implements Serializable {
 		checkNotNull(hashAlgorithm);
 		checkNotNull(funnel);
 		int tagBits = getBitsPerItemForFpRate(fpp);
-		int numBuckets = getBucketsNeeded(maxKeys);
+		long numBuckets = getBucketsNeeded(maxKeys);
 		IndexTagCalc<T> hasher = new IndexTagCalc<>(hashAlgorithm, funnel, numBuckets, tagBits);
 		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets, maxKeys);
 		return new CuckooFilter<>(hasher, filtertbl, 0, false, null);
@@ -360,16 +360,16 @@ public final class CuckooFilter<T> implements Serializable {
 	 *            insertion failure.
 	 * @return The number of buckets needed
 	 */
-	private static int getBucketsNeeded(int maxKeys) {
+	private static long getBucketsNeeded(long maxKeys) {
 		/*
 		 * force a power-of-two bucket count so hash functions for bucket index
 		 * can hashBits%numBuckets and get randomly distributed index. See wiki
 		 * "Modulo Bias". Only time we can get perfectly distributed index is
 		 * when numBuckets is a power of 2.
 		 */
-		int bucketsNeeded = DoubleMath.roundToInt((1.0 / LOAD_FACTOR) * maxKeys / BUCKET_SIZE, RoundingMode.UP);
+		long bucketsNeeded = DoubleMath.roundToLong((1.0 / LOAD_FACTOR) * maxKeys / BUCKET_SIZE, RoundingMode.UP);
 		// get next biggest power of 2
-		int bitPos = Integer.highestOneBit(bucketsNeeded);
+		long bitPos = Long.highestOneBit(bucketsNeeded);
 		if (bucketsNeeded > bitPos)
 			bitPos = bitPos << 1;
 		return bitPos;
@@ -381,7 +381,7 @@ public final class CuckooFilter<T> implements Serializable {
 	 * 
 	 * @return number of items in filter
 	 */
-	public int getCount() {
+	public long getCount() {
 		// can return more than maxKeys if running above design limit!
 		return count;
 	}
@@ -403,7 +403,7 @@ public final class CuckooFilter<T> implements Serializable {
 	 * 
 	 * @return space used by table in bits
 	 */
-	int getStorageSize() {
+	long getStorageSize() {
 		return table.getStorageSize();
 	}
 
@@ -427,9 +427,9 @@ public final class CuckooFilter<T> implements Serializable {
 	 */
 	public boolean put(T item) {
 		BucketAndTag pos = hasher.generate(item);
-		int curTag = pos.tag;
-		int curIndex = pos.index;
-		int altIndex = hasher.altIndex(curIndex, curTag);
+		long curTag = pos.tag;
+		long curIndex = pos.index;
+		long altIndex = hasher.altIndex(curIndex, curTag);
 		if (table.insertToBucket(curIndex, curTag) || table.insertToBucket(altIndex, curTag)) {
 			count++;
 			return true;
@@ -498,8 +498,8 @@ public final class CuckooFilter<T> implements Serializable {
 	 */
 	public boolean mightContain(T item) {
 		BucketAndTag pos = hasher.generate(item);
-		int i1 = pos.index;
-		int i2 = hasher.altIndex(pos.index, pos.tag);
+		long i1 = pos.index;
+		long i2 = hasher.altIndex(pos.index, pos.tag);
 
 		if (table.findTag(i1, i2, pos.tag)) {
 			return true;
@@ -528,8 +528,8 @@ public final class CuckooFilter<T> implements Serializable {
 
 	public boolean delete(T item) {
 		BucketAndTag pos = hasher.generate(item);
-		int i1 = pos.index;
-		int i2 = hasher.altIndex(pos.index, pos.tag);
+		long i1 = pos.index;
+		long i2 = hasher.altIndex(pos.index, pos.tag);
 
 		if (table.deleteFromBucket(i1, pos.tag) || table.deleteFromBucket(i2, pos.tag)) {
 			count--;
