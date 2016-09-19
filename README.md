@@ -2,11 +2,12 @@
 
 
 Code will be on maven etc... soon, interface is **NOT** finalized. I just tossed Java's BitSet for the Lucene version to allow 64 bit addressing. Todo before using in production:
+-----------
 
 *  Hashing functions need to be checked against longer tags/bucket indexes with 64 bit support
 *  Lucene LongBitSet needs to be extricated from Lucene core(it's an internal API)
 *  Multithreading using bucket segments
------------
+
 
 
 About
