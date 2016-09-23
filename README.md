@@ -1,8 +1,13 @@
 #A unit tested Cuckoo filter for Java, built using Guava.#
 
 
-Code will be on maven etc... soon, interface is **NOT** finalized. I'm planning to ditch BitSet and replace it with my own implenetation to get beyond the 32 bit size bounary. 
+Code will be on maven etc... soon, interface is **NOT** finalized. I just tossed Java's BitSet for the Lucene version to allow 64 bit addressing. Todo before using in production:
 -----------
+
+*  Hashing functions need to be checked against longer tags/bucket indexes with 64 bit support
+*  Lucene LongBitSet needs to be extricated from Lucene core(it's an internal API)
+*  Multithreading using bucket segments
+
 
 
 About
