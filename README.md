@@ -85,6 +85,6 @@ Hash collision attacks are theoretically possible against Cuckoo filters (as wit
 
 Benchmark Results
 ------------------------------
-Preliminary tests show that this implementation is about 30% slower than Guava's Bloom filters. See the benchmark folder for details. Multithreading is in the works-- which should make this library several times faster than Guava's Bloom in most practical circumstances.
+Preliminary tests show that this implementation is about 30% slower than Guava's Bloom filters. Keep in mind that Bloom filters use more space and do not allow deletions. For many applications a 30% performance difference is well worth the tradeoffs. See the benchmark folder for details. Multithreading is in the works-- which should make this library several times faster than Guava's Bloom in most practical circumstances.
 
 
