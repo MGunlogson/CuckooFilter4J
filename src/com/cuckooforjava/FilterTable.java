@@ -42,6 +42,7 @@ class FilterTable implements Serializable {
 	 * or bucket positions!
 	 */
 	private final LongBitSet memBlock;
+	
 	private final int bitsPerTag;
 	private final Random rando;
 	private long maxKeys;
@@ -54,7 +55,6 @@ class FilterTable implements Serializable {
 		this.maxKeys = maxKeys;
 		this.numBuckets = numBuckets;
 	}
-
 	public static FilterTable create(int bitsPerTag, long numBuckets, long maxKeys) {
 		// why would this ever happen?
 		checkArgument(bitsPerTag < 48, "tagBits (%s) should be less than 48 bits", bitsPerTag);
@@ -184,19 +184,20 @@ class FilterTable implements Serializable {
 		}
 	}
 
-	@VisibleForTesting
-	void writeTagWithClear(long bucketIndex, int posInBucket, long tag) {
-		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
-		// BIT BANGIN YEAAAARRHHHGGGHHH
-		for (int i = 0; i < bitsPerTag; i++) {
-			// second arg just does bit test in tag
-			if ((tag & (1L << i)) != 0) {
-				memBlock.set(tagStartIdx + i);
-			} else {
-				memBlock.clear(tagStartIdx + i);
-			}
-		}
-	}
+//not used
+//	@VisibleForTesting
+//	void writeTagWithClear(long bucketIndex, int posInBucket, long tag) {
+//		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
+//		// BIT BANGIN YEAAAARRHHHGGGHHH
+//		for (int i = 0; i < bitsPerTag; i++) {
+//			// second arg just does bit test in tag
+//			if ((tag & (1L << i)) != 0) {
+//				memBlock.set(tagStartIdx + i);
+//			} else {
+//				memBlock.clear(tagStartIdx + i);
+//			}
+//		}
+//	}
 
 	@VisibleForTesting
 	void deleteTag(long bucketIndex, int posInBucket) {

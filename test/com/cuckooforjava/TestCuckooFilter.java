@@ -31,27 +31,28 @@ public class TestCuckooFilter {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs() {
-		CuckooFilter.create(Funnels.integerFunnel(), 2000000, 1, Algorithm.Murmur3_32);
+		CuckooFilter.create(Funnels.integerFunnel(), 2000000, 1);
 	}
 
-	@Test(expected = OutOfMemoryError.class)
+	//hash function not long enough
+	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs2() {
 		CuckooFilter.create(Funnels.integerFunnel(), Integer.MAX_VALUE, 0.01, Algorithm.Murmur3_32);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs3() {
-		CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0, Algorithm.Murmur3_32);
+		CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs4() {
-		CuckooFilter.create(Funnels.integerFunnel(), -2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter.create(Funnels.integerFunnel(), -2000000, 0.01);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs5() {
-		CuckooFilter.create(Funnels.integerFunnel(), 2000000, -0.01, Algorithm.Murmur3_32);
+		CuckooFilter.create(Funnels.integerFunnel(), 2000000, -0.01);
 	}
 
 

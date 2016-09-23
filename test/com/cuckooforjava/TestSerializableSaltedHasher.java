@@ -33,12 +33,12 @@ public class TestSerializableSaltedHasher {
 
 	@Test(expected = NullPointerException.class)
 	public void testConsturctorNullArgs() {
-		new SerializableSaltedHasher<Object>(Algorithm.Murmur3_32, null);
+		SerializableSaltedHasher.create(null, null);
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void testConsturctorNullArgs2() {
-		new SerializableSaltedHasher<Integer>(null, Funnels.integerFunnel());
+		SerializableSaltedHasher.create(null, Funnels.integerFunnel());
 	}
 
 	@Test
@@ -52,8 +52,8 @@ public class TestSerializableSaltedHasher {
 		assertFalse(hasher2.hashObjWithSalt(42, 1).equals(hasher1.hashObjWithSalt(42, 1)));
 		assertFalse(hasher2.hashObjWithSalt(42, 1).equals(hasher1.hashObj(42)));
 		// test salted alg
-		hasher1 = new SerializableSaltedHasher<>(1, 0, Funnels.integerFunnel(), Algorithm.sha1);
-		hasher2 = new SerializableSaltedHasher<>(2, 0, Funnels.integerFunnel(), Algorithm.sha1);
+		hasher1 = new SerializableSaltedHasher<>(1, 0, Funnels.integerFunnel(), Algorithm.sha256);
+		hasher2 = new SerializableSaltedHasher<>(2, 0, Funnels.integerFunnel(), Algorithm.sha256);
 		assertFalse(hasher2.hashObj(42).equals(hasher1.hashObj(42)));
 		assertFalse(hasher2.hashObjWithSalt(42, 1).equals(hasher1.hashObjWithSalt(42, 1)));
 		assertFalse(hasher2.hashObjWithSalt(42, 1).equals(hasher1.hashObj(42)));
@@ -76,6 +76,14 @@ public class TestSerializableSaltedHasher {
 	}
 
 	@Test
+	public void testAutoAlgorithm()
+	{
+		SerializableSaltedHasher<Integer> hasher=SerializableSaltedHasher.create(100, Funnels.integerFunnel());
+		assertTrue(hasher.codeBitSize()==128);
+		hasher = SerializableSaltedHasher.create(30, Funnels.integerFunnel());
+		assertTrue(hasher.codeBitSize()<128);
+	}
+	@Test
 	public void testEquals() {
 		new EqualsTester()
 				.addEqualityGroup(
@@ -86,7 +94,7 @@ public class TestSerializableSaltedHasher {
 						new SerializableSaltedHasher<byte[]>(0, 1, Funnels.byteArrayFunnel(), Algorithm.Murmur3_32))
 				.addEqualityGroup(
 						new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32))
-				.addEqualityGroup(new SerializableSaltedHasher<byte[]>(0, 0, Funnels.byteArrayFunnel(), Algorithm.sha1))
+				.addEqualityGroup(new SerializableSaltedHasher<byte[]>(0, 0, Funnels.byteArrayFunnel(), Algorithm.sha256))
 				.testEquals();
 	}
 

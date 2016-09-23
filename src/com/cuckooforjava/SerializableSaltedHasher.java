@@ -48,20 +48,8 @@ public class SerializableSaltedHasher<T> implements Serializable {
 	private transient HashFunction hasher;
 	private final Funnel<? super T> funnel;
 
-
-
-	public SerializableSaltedHasher(Algorithm alg, Funnel<? super T> funnel) {
-		checkNotNull(alg);
-		checkNotNull(funnel);
-		this.alg = alg;
-		this.funnel = funnel;
-		SecureRandom randomer =new SecureRandom();
-		this.seedNSalt = randomer.nextLong();
-		this.addlSipSeed = randomer.nextLong();
-		hasher = configureHash();
-
-	}
-@VisibleForTesting
+	
+	@VisibleForTesting
 	 SerializableSaltedHasher(long seedNSalt,long addlSipSeed, Funnel<? super T> funnel, Algorithm alg) {
 		checkNotNull(alg);
 		checkNotNull(funnel);
@@ -69,27 +57,42 @@ public class SerializableSaltedHasher<T> implements Serializable {
 		this.funnel = funnel;
 		this.seedNSalt = seedNSalt;
 		this.addlSipSeed = addlSipSeed;
-		hasher = configureHash();
-
+		hasher = configureHash(alg,seedNSalt,addlSipSeed);
 	}
+	
+	
+	public static <T> SerializableSaltedHasher<T> create(int hashBitsNeeded,Funnel<? super T> funnel) {
+		Algorithm alg = Algorithm.Murmur3_32;
+		if(hashBitsNeeded>32)
+			alg=Algorithm.Murmur3_128;
+		return  create(alg,funnel);
+	}
+
+	public static <T> SerializableSaltedHasher<T> create(Algorithm alg, Funnel<? super T> funnel) {
+		checkNotNull(alg);
+		checkNotNull(funnel);
+		SecureRandom randomer =new SecureRandom();
+		long seedNSalt = randomer.nextLong();
+		long addlSipSeed = randomer.nextLong();
+		return new SerializableSaltedHasher<>(seedNSalt,addlSipSeed,funnel,alg);
+	}
+
 
 	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
 		// default deserialization
 		ois.defaultReadObject();
 		//not serializable so we rebuild here
-		hasher = configureHash();
+		hasher = configureHash(alg,seedNSalt,addlSipSeed);
 	}
 
-	private HashFunction configureHash() {
+	private static HashFunction configureHash( Algorithm alg,long seedNSalt,long addlSipSeed) {
 		switch (alg) {
 		case Murmur3_32:
 			return Hashing.murmur3_32((int) seedNSalt);
 		case Murmur3_128:
 			return Hashing.murmur3_128((int) seedNSalt);
-		case sha1:
-			return Hashing.sha1();
 		case sha256:
-			return Hashing.sha256();
+			return Hashing.sha1();
 		case sipHash24:
 			return Hashing.sipHash24(seedNSalt,addlSipSeed );
 		default:
@@ -127,6 +130,10 @@ public class SerializableSaltedHasher<T> implements Serializable {
 	@Override
 	public int hashCode() {
 		return Objects.hash(seedNSalt, alg, funnel,addlSipSeed);
+	}
+	
+	int codeBitSize() {
+		return hasher.bits();
 	}
 
 	public SerializableSaltedHasher<T> copy() {
