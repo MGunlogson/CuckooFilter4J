@@ -1,4 +1,4 @@
-#A unit tested Cuckoo filter Library in Java, built using Guava.#
+#A unit tested Cuckoo Filter Library for Java, built using Guava.#
 
 
 Code will be on maven etc... soon. Todo before using in production:
