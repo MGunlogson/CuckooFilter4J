@@ -1,14 +1,9 @@
-#A unit tested Cuckoo filter for Java, built using Guava.#
+#A unit tested Cuckoo filter Library in Java, built using Guava.#
 
 
-Code will be on maven etc... soon, interface is **NOT** finalized. I just tossed Java's BitSet for the Lucene version to allow 64 bit addressing. Todo before using in production:
+Code will be on maven etc... soon. Todo before using in production:
 -----------
-
-*  Hashing functions need to be checked against longer tags/bucket indexes with 64 bit support
-*  Lucene LongBitSet needs to be extricated from Lucene core(it's an internal API)
-*  Multithreading using bucket segments
-
-
+*  Multithreading using table segmentation locks, OS style.
 
 About
 -----------------
@@ -90,6 +85,6 @@ Hash collision attacks are theoretically possible against Cuckoo filters (as wit
 
 Benchmark Results
 ------------------------------
-Nothing formal yet, but preliminary tests show that this implenetation is about 30% slower than Guava's Bloom filters at the moment
+Preliminary tests show that this implementation is about 30% slower than Guava's Bloom filters. See the benchmark folder for details. Multithreading is in the works-- which should make this library several times faster than Guava's Bloom in most practical circumstances.
 
 
