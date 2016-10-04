@@ -1,7 +1,7 @@
 #A unit tested Cuckoo Filter Library for Java, built using Guava.#
 
 
-Code will be on maven etc... soon. Todo before using in production:
+Code will be on maven etc... soon. Working on multithreading now:
 -----------
 *  Multithreading using table segmentation locks, OS style.
 
@@ -81,7 +81,7 @@ Once the filter reaches capacity (`put()` returns false). It's best to either re
 
 Hashing Algorithms
 ----------------------------
-Hash collision attacks are theoretically possible against Cuckoo filters (as with any hash table based structure). If this is an issue for your application, use one of the cryptographically secure (but slower) hash functions. The default hash function, Murmer3 is *not* secure. Secure functions include SHA and SipHash. All hashes,including non-secure, are internally seeded and salted. Practical attacks against any of them are unlikely.
+Hash collision attacks are theoretically possible against Cuckoo filters (as with any hash table based structure). If this is an issue for your application, use one of the cryptographically secure (but slower) hash functions. The default hash function, Murmer3 is *not* secure. Secure functions include SHA and SipHash. All hashes,including non-secure, are internally seeded and salted. Practical attacks against any of them are unlikely. Also note that the maximum supported size of the filter depends on the hash funciton. Especially in the case of 32 bit Murmur3, the hash will limit table size. Even with a 32 bit hash, the maximum table size is around 270 megabytes. With 64 bit hashes the maximum table size is extremely large, and practically unlimited using 128+bit hash functions. In any case, the library will refuse to create the table using an invalid configuration.
 
 Benchmark Results
 ------------------------------
