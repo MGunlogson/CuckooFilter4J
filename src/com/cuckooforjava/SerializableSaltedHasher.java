@@ -27,7 +27,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import com.cuckooforjava.CuckooFilter.Algorithm;
+import com.cuckooforjava.Utils.Algorithm;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;

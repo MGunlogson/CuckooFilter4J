@@ -20,7 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
 import java.util.Objects;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.lucene.util.LongBitSet;
 
@@ -42,19 +42,19 @@ class FilterTable implements Serializable {
 	 * or bucket positions!
 	 */
 	private final LongBitSet memBlock;
-	
+
 	private final int bitsPerTag;
-	private final Random rando;
-	private long maxKeys;
-	private long numBuckets;
+
+	private final long maxKeys;
+	private final long numBuckets;
 
 	private FilterTable(LongBitSet memBlock, int bitsPerTag, long maxKeys, long numBuckets) {
 		this.bitsPerTag = bitsPerTag;
 		this.memBlock = memBlock;
-		this.rando = new Random();
 		this.maxKeys = maxKeys;
 		this.numBuckets = numBuckets;
 	}
+
 	public static FilterTable create(int bitsPerTag, long numBuckets, long maxKeys) {
 		// why would this ever happen?
 		checkArgument(bitsPerTag < 48, "tagBits (%s) should be less than 48 bits", bitsPerTag);
@@ -82,19 +82,21 @@ class FilterTable implements Serializable {
 	}
 
 	public long swapRandomTagInBucket(long curIndex, long tag) {
-		int randomBucketPosition = rando.nextInt(CuckooFilter.BUCKET_SIZE);
-		return readTagAndSet(curIndex, randomBucketPosition,tag);
+		int randomBucketPosition = ThreadLocalRandom.current().nextInt(CuckooFilter.BUCKET_SIZE);
+		return readTagAndSet(curIndex, randomBucketPosition, tag);
 	}
 
 	public boolean findTag(long i1, long i2, long tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
-			if (checkTag(i1, i,tag) || checkTag(i2, i,tag) )
+			if (checkTag(i1, i, tag) || checkTag(i2, i, tag))
 				return true;
 		}
 		return false;
 	}
 
 	public long getStorageSize() {
+		// NOTE: checked source in current Lucene LongBitSet class for thread
+		// safety, make sure it stays this way if you update the class.
 		return memBlock.length();
 	}
 
@@ -130,19 +132,13 @@ class FilterTable implements Serializable {
 		long tag = 0;
 		long tagEndIdx = tagStartIdx + bitsPerTag;
 		int tagPos = 0;
-		for (long i = tagStartIdx; i < tagEndIdx; i++)
-		{
-			if ((newTag & (1L << tagPos)) != 0) 
-			{
-				if (memBlock.getAndSet(i)) 
-				{
+		for (long i = tagStartIdx; i < tagEndIdx; i++) {
+			if ((newTag & (1L << tagPos)) != 0) {
+				if (memBlock.getAndSet(i)) {
 					tag |= 1 << tagPos;
 				}
-			}
-			else 
-			{
-				if (memBlock.getAndClear(i))
-				{
+			} else {
+				if (memBlock.getAndClear(i)) {
 					tag |= 1 << tagPos;
 				}
 			}
@@ -170,6 +166,22 @@ class FilterTable implements Serializable {
 	}
 
 	/**
+	 * Similar to checkTag() except it counts the number of matches in the
+	 * bucket.
+	 */
+	@VisibleForTesting
+	int countTag(long i1, long i2, long tag) {
+		int tagCount = 0;
+		for (int posInBucket = 0; posInBucket < CuckooFilter.BUCKET_SIZE; posInBucket++) {
+			if (checkTag(i1, posInBucket, tag))
+				tagCount++;
+			if (checkTag(i2, posInBucket, tag))
+				tagCount++;
+		}
+		return tagCount;
+	}
+
+	/**
 	 * faster than regular write because it assumes tag starts with all zeros
 	 */
 	@VisibleForTesting
@@ -184,20 +196,20 @@ class FilterTable implements Serializable {
 		}
 	}
 
-//not used
-//	@VisibleForTesting
-//	void writeTagWithClear(long bucketIndex, int posInBucket, long tag) {
-//		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
-//		// BIT BANGIN YEAAAARRHHHGGGHHH
-//		for (int i = 0; i < bitsPerTag; i++) {
-//			// second arg just does bit test in tag
-//			if ((tag & (1L << i)) != 0) {
-//				memBlock.set(tagStartIdx + i);
-//			} else {
-//				memBlock.clear(tagStartIdx + i);
-//			}
-//		}
-//	}
+	// not used
+	// @VisibleForTesting
+	// void writeTagWithClear(long bucketIndex, int posInBucket, long tag) {
+	// long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
+	// // BIT BANGIN YEAAAARRHHHGGGHHH
+	// for (int i = 0; i < bitsPerTag; i++) {
+	// // second arg just does bit test in tag
+	// if ((tag & (1L << i)) != 0) {
+	// memBlock.set(tagStartIdx + i);
+	// } else {
+	// memBlock.clear(tagStartIdx + i);
+	// }
+	// }
+	// }
 
 	@VisibleForTesting
 	void deleteTag(long bucketIndex, int posInBucket) {
@@ -228,7 +240,7 @@ class FilterTable implements Serializable {
 	}
 
 	public FilterTable copy() {
-		return new FilterTable( memBlock.clone(), bitsPerTag, maxKeys, numBuckets);
+		return new FilterTable(memBlock.clone(), bitsPerTag, maxKeys, numBuckets);
 	}
 
 }

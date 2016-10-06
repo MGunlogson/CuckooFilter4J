@@ -19,15 +19,19 @@ package com.cuckooforjava;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.math.RoundingMode;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.StampedLock;
 
 import javax.annotation.Nullable;
 
+import com.cuckooforjava.Utils.Algorithm;
+import com.cuckooforjava.Utils.Victim;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
-import com.google.common.math.DoubleMath;
 
 /**
  * A Cuckoo filter for instances of {@code T}. Cuckoo filters are probabilistic
@@ -94,116 +98,63 @@ import com.google.common.math.DoubleMath;
  */
 public final class CuckooFilter<T> implements Serializable {
 
+	/*
+	 * IMPORTANT THREAD SAFETY NOTES. To prevent deadlocks, all methods needing
+	 * multiple locks need to lock the victim first. This is followed by the
+	 * segment locks, which need to be locked in ascending order of segment in
+	 * the backing lock array. The bucketlocker will always lock multiple
+	 * buckets in the same order if you use it properly.
+	 * 
+	 */
 	private static final long serialVersionUID = -1337735144654851942L;
 	static final int INSERT_ATTEMPTS = 500;
 	static final int BUCKET_SIZE = 4;
 	// make sure to update getNeededBitsForFpRate() if changing this... then
 	// again don't change this
-	static final double LOAD_FACTOR = 0.955;
-	static final double DEFAULT_FP = 0.01;
+	private static final double LOAD_FACTOR = 0.955;
+	private static final double DEFAULT_FP = 0.01;
+	private static final int DEFAULT_CONCURRENCY = 32;
 
-	private FilterTable table;
-	private IndexTagCalc<T> hasher;
-	private long count;
+	private final FilterTable table;
+	private final IndexTagCalc<T> hasher;
+	private final AtomicLong count;
+	/**
+	 * Only stored for serialization since the bucket locker is transient.
+	 * equals() and hashcode() just check the value in the bucket locker and
+	 * ignore this
+	 */
+	private final int concurrentSegments;
+	private final StampedLock victimLock;
+	private transient SegmentedBucketLocker bucketLocker;
 
 	@VisibleForTesting
 	Victim victim;
 	@VisibleForTesting
-	boolean hasVictim;
-
 	/**
-	 * The hashing algorithm used internally.
-	 * 
-	 * @author Mark Gunlogson
-	 *
+	 * we use volatile instead of Atomic since we don't need the implied
+	 * lock(we're already locking the victim lock for read or write whenever we
+	 * check this)
 	 */
-	public enum Algorithm {
-		/**
-		 * Murmer3 - 32 bit version, This is the default.
-		 */
-		Murmur3_32(0),
-		/**
-		 * Murmer3 - 128 bit version. Slower than 32 bit Murmer3, not sure why
-		 * you would want to use this.
-		 */
-		Murmur3_128(1),
-		/**
-		 * SHA1 secure hash.
-		 */
-		sha256(2),
-		/**
-		 * SipHash(2,4) secure hash.
-		 */
-		sipHash24(3);
-		private final int id;
-
-		Algorithm(int id) {
-			this.id = id;
-		}
-
-		public int getValue() {
-			return id;
-		}
-	}
-
-	/**
-	 * when the filter becomes completely full, the last item that fails to be
-	 * repositioned will be left without a home. We need to store it to avoid a
-	 * false negative. Victim may be stale since we use flag to check if exists
-	 */
-	class Victim implements Serializable {
-		private static final long serialVersionUID = -984233593241086192L;
-		long i1;
-		long i2;
-		long tag;
-
-		Victim(long bucketIndex, long tag) {
-			this.i1 = bucketIndex;
-			this.i2 = hasher.altIndex(bucketIndex, tag);
-			this.tag = tag;
-		}
-
-		Victim() {
-
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(i1, i2, tag);
-		}
-
-		@Override
-		public boolean equals(@Nullable Object object) {
-			if (object == this) {
-				return true;
-			}
-			if (object instanceof CuckooFilter.Victim) {
-				@SuppressWarnings("rawtypes") // don't care what parent class
-												// generic type is
-				CuckooFilter.Victim that = (CuckooFilter.Victim) object;
-				return (this.i1 == that.i1 || this.i1 == that.i2) && this.tag == that.tag;
-			}
-			return false;
-		}
-
-		Victim copy() {
-			return new Victim(i1, tag);
-		}
-	}
+	volatile boolean hasVictim;
 
 	/**
 	 * Creates a Cuckoo filter.
 	 */
-	private CuckooFilter(IndexTagCalc<T> hasher, FilterTable table, long count, boolean hasVictim, Victim victim) {
+	private CuckooFilter(IndexTagCalc<T> hasher, FilterTable table, AtomicLong count, boolean hasVictim, Victim victim,
+			int concurrentSegments) {
 		this.hasher = hasher;
 		this.table = table;
 		this.count = count;
 		this.hasVictim = hasVictim;
+		this.concurrentSegments = concurrentSegments;
 		// no nulls even if victim hasn't been used!
 		if (victim == null)
 			this.victim = new Victim();
 		else
 			this.victim = victim;
+
+		this.victimLock = new StampedLock();
+		this.bucketLocker = new SegmentedBucketLocker(concurrentSegments);
 	}
 
 	/**
@@ -323,80 +274,44 @@ public final class CuckooFilter<T> implements Serializable {
 		checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
 		checkArgument(fpp < .25, "fpp (%s) must be < 0.25, decrease fpp", fpp);
 		checkNotNull(funnel);
-		int tagBits = getBitsPerItemForFpRate(fpp);
-		long numBuckets = getBucketsNeeded(maxKeys);
-		IndexTagCalc<T> hasher ;
-		if(hashAlgorithm==null)
-		{
-			hasher=IndexTagCalc.create(funnel, numBuckets, tagBits);
-		}
-		else
+		int tagBits = Utils.getBitsPerItemForFpRate(fpp, LOAD_FACTOR);
+		long numBuckets = Utils.getBucketsNeeded(maxKeys, LOAD_FACTOR, BUCKET_SIZE);
+		IndexTagCalc<T> hasher;
+		if (hashAlgorithm == null) {
+			hasher = IndexTagCalc.create(funnel, numBuckets, tagBits);
+		} else
 			hasher = IndexTagCalc.create(hashAlgorithm, funnel, numBuckets, tagBits);
 		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets, maxKeys);
-		return new CuckooFilter<>(hasher, filtertbl, 0, false, null);
+		return new CuckooFilter<>(hasher, filtertbl, new AtomicLong(0), false, null, DEFAULT_CONCURRENCY);
 
-	}
-
-	/**
-	 * Calculates how many bits are needed to reach a given false positive rate.
-	 * 
-	 * @param fpProb
-	 *            the false positive probability.
-	 * @return the length of the tag needed (in bits) to reach the false
-	 *         positive rate.
-	 */
-	private static int getBitsPerItemForFpRate(double fpProb) {
-		/*
-		 * equation from Cuckoo Filter: Practically Better Than Bloom Bin Fan,
-		 * David G. Andersen, Michael Kaminsky , Michael D. Mitzenmacher
-		 */
-		return DoubleMath.roundToInt(DoubleMath.log2((1 / fpProb) + 3) / LOAD_FACTOR, RoundingMode.UP);
-	}
-
-	/**
-	 * Calculates how many buckets are needed to hold the chosen number of keys,
-	 * taking the standard load factor into account.
-	 * 
-	 * @param maxKeys
-	 *            the number of keys the filter is expected to hold before
-	 *            insertion failure.
-	 * @return The number of buckets needed
-	 */
-	private static long getBucketsNeeded(long maxKeys) {
-		/*
-		 * force a power-of-two bucket count so hash functions for bucket index
-		 * can hashBits%numBuckets and get randomly distributed index. See wiki
-		 * "Modulo Bias". Only time we can get perfectly distributed index is
-		 * when numBuckets is a power of 2.
-		 */
-		long bucketsNeeded = DoubleMath.roundToLong((1.0 / LOAD_FACTOR) * maxKeys / BUCKET_SIZE, RoundingMode.UP);
-		// get next biggest power of 2
-		long bitPos = Long.highestOneBit(bucketsNeeded);
-		if (bucketsNeeded > bitPos)
-			bitPos = bitPos << 1;
-		return bitPos;
 	}
 
 	/**
 	 * Gets the current number of items in the Cuckoo filter. Can be higher than
 	 * the max number of keys the filter was created to store in some cases.
+	 * Also note that when using multiple threads the count is eventually
+	 * consistent, meaning it will only be completely accurate when multiple
+	 * threads are not doing simultaneous access. This is to avoid an exclusive
+	 * lock which would essentially make {@link #put(Object)} and
+	 * {@link #delete(Object)} single threaded
 	 * 
 	 * @return number of items in filter
 	 */
 	public long getCount() {
 		// can return more than maxKeys if running above design limit!
-		return count;
+		return count.get();
 	}
 
 	/**
 	 * Gets the current load factor of the Cuckoo filter. Reasonably sized
 	 * filters with randomly distributed values can be expected to reach a load
-	 * factor of around 95% (0.95) before insertion failure
+	 * factor of around 95% (0.95) before insertion failure. Note that during
+	 * simultaneous access from multiple threads this may not be exact.
 	 * 
 	 * @return load fraction of total space used
 	 */
 	public double getLoadFactor() {
-		return count / (hasher.getNumBuckets() * (double) BUCKET_SIZE);
+		return count.get() / (hasher.getNumBuckets() * (double) BUCKET_SIZE);
 	}
 
 	/**
@@ -432,42 +347,215 @@ public final class CuckooFilter<T> implements Serializable {
 		long curTag = pos.tag;
 		long curIndex = pos.index;
 		long altIndex = hasher.altIndex(curIndex, curTag);
-		if (table.insertToBucket(curIndex, curTag) || table.insertToBucket(altIndex, curTag)) {
-			count++;
-			return true;
-		}
-		// don't do insertion loop if victim slot is already filled
-		if (hasVictim)
-			return false;
-		// if we kicked a tag we need to move to alternate position,
-		// possibly kicking another tag there
-		// repeat the process until we succeed or run out of chances
-		for (int i = 0; i <= INSERT_ATTEMPTS; i++) {
-			curTag = table.swapRandomTagInBucket(curIndex, curTag);
-			curIndex = hasher.altIndex(curIndex, curTag);
-			if (table.insertToBucket(curIndex, curTag)) {
-				count++;
+		bucketLocker.lockBucketsWrite(curIndex, altIndex);
+		try {
+			if (table.insertToBucket(curIndex, curTag) || table.insertToBucket(altIndex, curTag)) {
+				count.incrementAndGet();
 				return true;
 			}
-
+		} finally {
+			bucketLocker.unlockBucketsWrite(curIndex, altIndex);
 		}
-		// get here if we couldn't insert and have a random tag floating around
-
-		hasVictim = true;
-		victim = new Victim(curIndex, curTag);
-
-		count++;// technically victim is in table
-		return true;// technically victim still got put somewhere
+		// don't do insertion loop if victim slot is already filled
+		long victimLockStamp = writeLockVictimIfClear();
+		if (victimLockStamp == 0L)
+			// victim was set...can't insert
+			return false;
+		try {
+			// fill victim slot and run fun insert method below
+			victim.setTag(curTag);
+			victim.setI1(curIndex);
+			victim.setI2(altIndex);
+			hasVictim = true;
+			for (int i = 0; i <= INSERT_ATTEMPTS; i++) {
+				if (trySwapVictimIntoEmptySpot())
+					break;
+			}
+			/*
+			 * count is incremented here because we should never increase count
+			 * when not locking buckets or victim. Reason is because otherwise
+			 * count may be inconsistent across threads when doing operations
+			 * that lock the whole table like hashcode() or equals()
+			 */
+			count.getAndIncrement();
+		} finally {
+			victimLock.unlock(victimLockStamp);
+		}
+		// if we get here, we either managed to insert victim using retries or
+		// it's in victim slot from another thread. Either way, it's in the
+		// table.
+		return true;
 	}
 
 	/**
-	 * Attempts to insert the victim item if it exists
+	 * if we kicked a tag we need to move it to alternate position, possibly
+	 * kicking another tag there, repeating the process until we succeed or run
+	 * out of chances
+	 * 
+	 * The basic flow below is to insert our current tag into a position in an
+	 * already full bucket, then move the tag that we overwrote to it's
+	 * alternate index. We repeat this until we move a tag into a non-full
+	 * bucket or run out of attempts. This tag shuffling process is what gives
+	 * the Cuckoo filter such a high load factor. When we run out of attempts,
+	 * we leave the orphaned tag in the victim slot.
+	 * 
+	 * We need to be extremely careful here to avoid deadlocks and thread stalls
+	 * during this process. The most nefarious deadlock is that two or more
+	 * threads run out of tries simultaneously and all need a place to store a
+	 * victim even though we only have one slot
+	 * 
+	 *
+	 * Unlock both victim and the bucket. Why do we do this? To avoid a series
+	 * of deadlocks and thread stalls. We could keep the victim locked during
+	 * all insertion attempts but this prevents any other threads from doing
+	 * almost every operation!
+	 * 
+	 * So why don't we just lock the victim and both buckets then unlock all
+	 * three at each loop iteration when the table is in a consistent state?
+	 * Another deadlock :). Notice in the bucket locker we use a lock hierarchy,
+	 * always making sure to lock the lower segment's bucket index first when
+	 * doing read or write. We have a ridiculous situation here where we can't
+	 * determine the tag's alternate bucket index without locking one of the
+	 * buckets to read the tag we displaced. Schrodinger's locks if you will.
+	 * This is a problem, since the alternate index could be higher or lower
+	 * than the current one we could end up locking the segments in the opposite
+	 * order we normally do. This would cause random deadlocks on bucket write
+	 * locks in the rare case that another thread is working on the same
+	 * buckets.
+	 * 
+	 * Note that it IS possible for another thread to change or clear the victim
+	 * when we release the locks, and we are okay with that. The table + victim
+	 * just needs to be in a valid state when we release the locks, beyond that
+	 * we rely on hope.
+	 * 
+	 */
+	private boolean trySwapVictimIntoEmptySpot() {
+
+		long curIndex = victim.getI2();
+		// lock bucket. We always use I2 since victim tag might come from bucket
+		// I1
+		bucketLocker.lockSingleBucketWrite(curIndex);
+		long curTag = table.swapRandomTagInBucket(curIndex, victim.getTag());
+		bucketLocker.unlockSingleBucketWrite(curIndex);
+		// new victim's I2 is different as long as tag isn't the same
+		long altIndex = hasher.altIndex(curIndex, curTag);
+		// try to insert the new victim tag in it's alternate bucket
+		bucketLocker.lockSingleBucketWrite(altIndex);
+		try {
+			if (table.insertToBucket(altIndex, curTag)) {
+				hasVictim = false;
+				return true;
+			} else {
+				// still have a victim, but a different one...
+				victim.setTag(curTag);
+				// new victim always shares I1 with previous victims' I2
+				victim.setI1(curIndex);
+				victim.setI2(altIndex);
+			}
+		} finally {
+			bucketLocker.unlockSingleBucketWrite(altIndex);
+		}
+		return false;
+
+	}
+
+	/**
+	 * Attempts to insert the victim item if it exists. Remember that inserting
+	 * from the victim cache to the main table DOES NOT affect the count since
+	 * items in the victim cache are technically still in the table
+	 * 
 	 */
 	private void insertIfVictim() {
-		// trying to insert when filter has victim can create a second
-		// victim!
-		if (hasVictim && (table.insertToBucket(victim.i1, victim.tag) || table.insertToBucket(victim.i2, victim.tag))) {
-			hasVictim = false;
+		long victimLockstamp = writeLockVictimIfSet();
+		if (victimLockstamp == 0L)
+			return;
+		try {
+
+			// when we get here we definitely have a victim and a write lock
+			bucketLocker.lockBucketsWrite(victim.getI1(), victim.getI2());
+			try {
+				if (table.insertToBucket(victim.getI1(), victim.getTag())
+						|| table.insertToBucket(victim.getI2(), victim.getTag())) {
+					// set this here because we already have lock
+					hasVictim = false;
+				}
+			} finally {
+				bucketLocker.unlockBucketsWrite(victim.getI1(), victim.getI2());
+			}
+		} finally {
+			victimLock.unlock(victimLockstamp);
+		}
+
+	}
+
+	/***
+	 * Checks if the victim is set using a read lock and upgrades to a write
+	 * lock if it is. Will either return a write lock stamp if victim is set, or
+	 * zero if no victim.
+	 * 
+	 * @return a write lock stamp for the Victim or 0 if no victim
+	 */
+	private long writeLockVictimIfSet() {
+		long victimLockstamp = victimLock.readLock();
+		if (hasVictim) {
+			// try to upgrade our read lock to write exclusive if victim
+			long writeLockStamp = victimLock.tryConvertToWriteLock(victimLockstamp);
+			// could not get write lock
+			if (writeLockStamp == 0L) {
+				// so unlock the victim
+				victimLock.unlock(victimLockstamp);
+				// now just block until we have exclusive lock
+				victimLockstamp = victimLock.writeLock();
+				// make sure victim is still set with our new write lock
+				if (!hasVictim) {
+					// victim has been cleared by another thread... so just give
+					// up our lock
+					victimLock.tryUnlockWrite();
+					return 0L;
+				} else
+					return victimLockstamp;
+			} else {
+				return writeLockStamp;
+			}
+		} else {
+			victimLock.unlock(victimLockstamp);
+			return 0L;
+		}
+	}
+
+	/***
+	 * Checks if the victim is set using a read lock and upgrades to a write
+	 * lock if it is not set. Will either return a write lock stamp if victim is
+	 * clear, or zero if a victim is already set.
+	 * 
+	 * @return a write lock stamp for the Victim or 0 if no victim
+	 */
+	private long writeLockVictimIfClear() {
+		long victimLockstamp = victimLock.readLock();
+		if (!hasVictim) {
+			// try to upgrade our read lock to write exclusive if victim
+			long writeLockStamp = victimLock.tryConvertToWriteLock(victimLockstamp);
+			// could not get write lock
+			if (writeLockStamp == 0L) {
+				// so unlock the victim
+				victimLock.unlock(victimLockstamp);
+				// now just block until we have exclusive lock
+				victimLockstamp = victimLock.writeLock();
+				// make sure victim is still clear with our new write lock
+				if (!hasVictim)
+					return victimLockstamp;
+				else {
+					// victim has been set by another thread... so just give up
+					// our lock
+					victimLock.tryUnlockWrite();
+					return 0L;
+				}
+			} else {
+				return writeLockStamp;
+			}
+		} else {
+			victimLock.unlock(victimLockstamp);
+			return 0L;
 		}
 	}
 
@@ -479,14 +567,20 @@ public final class CuckooFilter<T> implements Serializable {
 	 *            the tag to check
 	 * @return true if tag is stored in victim
 	 */
-	// NOTE: NULL CHECK SKIPPED FOR SPEED
-	boolean checkIsVictim(@Nullable BucketAndTag tagToCheck) {
-		if (hasVictim) {
-			if (victim.tag == tagToCheck.tag && (tagToCheck.index == victim.i1 || tagToCheck.index == victim.i2)) {
-				return true;
+	boolean checkIsVictim(BucketAndTag tagToCheck) {
+		checkNotNull(tagToCheck);
+		victimLock.readLock();
+		try {
+			if (hasVictim) {
+				if (victim.getTag() == tagToCheck.tag
+						&& (tagToCheck.index == victim.getI1() || tagToCheck.index == victim.getI2())) {
+					return true;
+				}
 			}
+			return false;
+		} finally {
+			victimLock.tryUnlockRead();
 		}
-		return false;
 	}
 
 	/**
@@ -502,11 +596,58 @@ public final class CuckooFilter<T> implements Serializable {
 		BucketAndTag pos = hasher.generate(item);
 		long i1 = pos.index;
 		long i2 = hasher.altIndex(pos.index, pos.tag);
-
-		if (table.findTag(i1, i2, pos.tag)) {
-			return true;
+		bucketLocker.lockBucketsRead(i1, i2);
+		try {
+			if (table.findTag(i1, i2, pos.tag)) {
+				return true;
+			}
+		} finally {
+			bucketLocker.unlockBucketsRead(i1, i2);
 		}
 		return checkIsVictim(pos);
+	}
+
+	/**
+	 * This method returns the approximate number of times an item was added to
+	 * the filter. This count is probabilistic like the rest of the filter, so
+	 * items with duplicate tags can artificially raise the count. Since the
+	 * filter has no false negatives, <i>the approximate count will always be
+	 * equal or greater than the actual count(unless you've been deleting
+	 * non-existent items)</i>. That is, this method may return a higher count
+	 * than the true value, but never lower. The false inflation chance of the
+	 * count depends on the filter's false positive rate, but is generally low
+	 * for sane configurations.
+	 * <p>
+	 * NOTE: Inserting the same key more than 7 times will cause a bucket
+	 * overflow, greatly decreasing the performance of the filter and making
+	 * early insertion failure (less than design load factor) very likely. For
+	 * this reason the filter should only be used to count small values.
+	 * 
+	 * <p>
+	 * Also note that getting the count is generally about half as fast as
+	 * checking if a filter contains an item.
+	 * 
+	 * @param item
+	 *            item to check
+	 * @return Returns a positive integer representing the number of times an
+	 *         item was probably added to the filter. Returns zero if the item
+	 *         is not in the filter, behaving exactly like
+	 *         {@code #mightContain(Object)} in this case.
+	 */
+	public int approximateCount(T item) {
+		BucketAndTag pos = hasher.generate(item);
+		long i1 = pos.index;
+		long i2 = hasher.altIndex(pos.index, pos.tag);
+		int tagCount = 0;
+		bucketLocker.lockBucketsRead(i1, i2);
+		try {
+			tagCount = table.countTag(i1, i2, pos.tag);
+		} finally {
+			bucketLocker.unlockBucketsRead(i1, i2);
+		}
+		if (checkIsVictim(pos))
+			tagCount++;
+		return tagCount;
 	}
 
 	/**
@@ -532,18 +673,45 @@ public final class CuckooFilter<T> implements Serializable {
 		BucketAndTag pos = hasher.generate(item);
 		long i1 = pos.index;
 		long i2 = hasher.altIndex(pos.index, pos.tag);
-
-		if (table.deleteFromBucket(i1, pos.tag) || table.deleteFromBucket(i2, pos.tag)) {
-			count--;
+		bucketLocker.lockBucketsWrite(i1, i2);
+		boolean deleteSuccess = false;
+		try {
+			if (table.deleteFromBucket(i1, pos.tag) || table.deleteFromBucket(i2, pos.tag))
+				deleteSuccess = true;
+		} finally {
+			bucketLocker.unlockBucketsWrite(i1, i2);
+		}
+		// try to insert the victim again if we were able to delete an item
+		if (deleteSuccess) {
+			count.decrementAndGet();
 			insertIfVictim();// might as well try to insert again
 			return true;
 		}
-		if (checkIsVictim(pos)) {
-			hasVictim = false;
-			count--;
-			return true;
+		// if delete failed but we have a victim, check if the item we're trying
+		// to delete IS actually the victim
+		long victimLockStamp = writeLockVictimIfSet();
+		if (victimLockStamp == 0L)
+			return false;
+		else {
+			try {
+				// check victim match
+				if (victim.getTag() == pos.tag && (victim.getI1() == pos.index || victim.getI2() == pos.index)) {
+					hasVictim = false;
+					count.decrementAndGet();
+					return true;
+				} else
+					return false;
+			} finally {
+				victimLock.unlock(victimLockStamp);
+			}
 		}
-		return false;
+	}
+
+	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+		// default deserialization
+		ois.defaultReadObject();
+		// not serializable so we rebuild here
+		bucketLocker = new SegmentedBucketLocker(concurrentSegments);
 	}
 
 	@Override
@@ -553,24 +721,40 @@ public final class CuckooFilter<T> implements Serializable {
 		}
 		if (object instanceof CuckooFilter) {
 			CuckooFilter<?> that = (CuckooFilter<?>) object;
-			if (hasVictim) {
-				// only compare victim if set, victim data is sometimes stale
-				// since we use bool flag to determine if set or not
-				return this.hasher.equals(that.hasher) && this.table.equals(that.table) && this.count == that.count
-						&& this.hasVictim == that.hasVictim && victim.equals(that.victim);
+			victimLock.readLock();
+			bucketLocker.lockAllBucketsRead();
+			try {
+				if (hasVictim) {
+					// only compare victim if set, victim data is sometimes
+					// stale
+					// since we use bool flag to determine if set or not
+					return this.hasher.equals(that.hasher) && this.table.equals(that.table)
+							&& this.count.get() == that.count.get() && this.hasVictim == that.hasVictim
+							&& victim.equals(that.victim);
+				}
+				return this.hasher.equals(that.hasher) && this.table.equals(that.table)
+						&& this.count.get() == that.count.get() && this.hasVictim == that.hasVictim;
+			} finally {
+				bucketLocker.unlockAllBucketsRead();
+				victimLock.tryUnlockRead();
 			}
-			return this.hasher.equals(that.hasher) && this.table.equals(that.table) && this.count == that.count
-					&& this.hasVictim == that.hasVictim;
 		}
 		return false;
 	}
 
 	@Override
 	public int hashCode() {
-		if (hasVictim) {
-			return Objects.hash(hasher, table, count, victim);
+		victimLock.readLock();
+		bucketLocker.lockAllBucketsRead();
+		try {
+			if (hasVictim) {
+				return Objects.hash(hasher, table, count.get(), victim);
+			}
+			return Objects.hash(hasher, table, count.get());
+		} finally {
+			bucketLocker.unlockAllBucketsRead();
+			victimLock.tryUnlockRead();
 		}
-		return Objects.hash(hasher, table, count);
 	}
 
 	/**
@@ -582,7 +766,14 @@ public final class CuckooFilter<T> implements Serializable {
 	 * @return a copy of the filter
 	 */
 	public CuckooFilter<T> copy() {
-		return new CuckooFilter<>(hasher.copy(), table.copy(), count, hasVictim, victim.copy());
+		victimLock.readLock();
+		bucketLocker.lockAllBucketsRead();
+		try {
+			return new CuckooFilter<>(hasher.copy(), table.copy(), count, hasVictim, victim.copy(), concurrentSegments);
+		} finally {
+			bucketLocker.unlockAllBucketsRead();
+			victimLock.tryUnlockRead();
+		}
 	}
 
 }

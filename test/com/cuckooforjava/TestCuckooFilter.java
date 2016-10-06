@@ -21,7 +21,8 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import com.cuckooforjava.CuckooFilter;
-import com.cuckooforjava.CuckooFilter.Algorithm;
+import com.cuckooforjava.Utils.Algorithm;
+import com.cuckooforjava.Utils.Victim;
 import com.google.common.hash.Funnels;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
@@ -223,9 +224,9 @@ public class TestCuckooFilter {
 		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
 
 		filter.hasVictim = true;
-		filter.victim = filter.new Victim(1, 2);
-		BucketAndTag test1 = new BucketAndTag(filter.victim.i1, 2);
-		BucketAndTag test2 = new BucketAndTag(filter.victim.i2, 2);
+		filter.victim = new Victim(1,2, 42);
+		BucketAndTag test1 = new BucketAndTag(filter.victim.getI1(), 42);
+		BucketAndTag test2 = new BucketAndTag(filter.victim.getI2(), 42);
 		assertTrue(filter.checkIsVictim(test1));
 		assertTrue(filter.checkIsVictim(test2));
 	}

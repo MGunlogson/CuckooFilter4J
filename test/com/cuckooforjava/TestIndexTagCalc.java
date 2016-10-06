@@ -23,7 +23,7 @@ import java.util.Random;
 
 import org.junit.Test;
 
-import com.cuckooforjava.CuckooFilter.Algorithm;
+import com.cuckooforjava.Utils.Algorithm;
 import com.google.common.hash.Funnels;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
