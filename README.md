@@ -1,5 +1,5 @@
 #A fast multithreaded Java Cuckoo Filter#
-##built using Guava.##
+**built using Guava.**
 
 
 Code will be on maven etc... soon. Working on multithreading now:
