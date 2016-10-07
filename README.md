@@ -1,4 +1,4 @@
-#A fast multithreaded Java Cuckoo Filter#
+#Cuckoo For Java-A fast multithreaded Java Cuckoo Filter#
 About
 -----------------
 
