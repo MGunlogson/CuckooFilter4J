@@ -75,16 +75,23 @@ Deletions/Duplicates
 -----------------
 Cuckoo filters allow deletion like counting Bloom filters. While counting Bloom filters invariably use more space to allow deletions, Cuckoo filters achieve this with *no* space or time cost. Like counting variations of Bloom filters, Cuckoo filters have a limit to the number of times you can insert duplicate items. This limit is 8-9 in the current design, depending on internal state. **Reaching this limit can cause further inserts to fail and degrades the performance of the filter**. Occasional duplicates will not degrade the performance of the filter but will slightly reduce capacity. Existing items can be deleted without affecting the false positive rate or causing false negatives. However, deleting items that were *not* previously added to the filter can cause false negatives.
 
+Counting
+---------------
+Cuckoo filters support counting items, like counting Bloom filters. The maximum count is still limited by max-duplicates to 7 so this should only be used to count small numbers. The measured count may be higher than actual count due to false negatives, but will never be lower since Cuckoo filters have no false-negatives.
+
 Capacity
 -------------------- 
 Once the filter reaches capacity (`put()` returns false). It's best to either rebuild the existing filter or create a larger one. Deleting items in the current filter is also an option, but you should delete at least ~2% of the items in the filter before inserting again.
+
+Speed/Benchmarks
+------------------------------
+Cuckoo For Java is roughly the same speed as Guava's Bloom filters when running single-threaded. Guava's Bloom is usually faster with very small tables, but the trend is reversed with tables too large to fit in the CPU cache. Overall the single-threaded speed of the two libraries is comparable. This library supports concurrent access through multithreading (Guava's Bloom does not). In my tests this scales fairly linearly, making Cuckoo For Java much faster than Bloom filters for multi-threaded applications. See the [benchmark](bench/) folder for some tests to run on your own system.
+
 
 Hashing Algorithms
 ----------------------------
 Hash collision attacks are theoretically possible against Cuckoo filters (as with any hash table based structure). If this is an issue for your application, use one of the cryptographically secure (but slower) hash functions. The default hash function, Murmer3 is *not* secure. Secure functions include SHA and SipHash. All hashes,including non-secure, are internally seeded and salted. Practical attacks against any of them are unlikely. Also note that the maximum supported size of the filter depends on the hash funciton. Especially in the case of 32 bit Murmur3, the hash will limit table size. Even with a 32 bit hash, the maximum table size is around 270 megabytes. With 64 bit hashes the maximum table size is extremely large, and practically unlimited using 128+bit hash functions. In any case, the library will refuse to create the table using an invalid configuration.
 
-Speed
-------------------------------
-Cuckoo For Java is roughly the same speed as Guava's Bloom filters when running single-threaded. Guava's Bloom is usually faster with very small tables, but the trend is reversed with tables too large to fit in the CPU cache. Overall the single-threaded speed of the two libraries is comparable. This library supports concurrent access through multithreading (Guava's Bloom does not), and in my tests this scales fairly linearly, making Cuckoo For Java much faster than Bloom filters for multi-threaded applications.
+
 
 
