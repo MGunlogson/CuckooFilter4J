@@ -11,7 +11,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.TWARE.
+   limitations under the License.
 */
 
 package com.cuckooforjava;
@@ -40,8 +40,8 @@ import com.google.common.hash.Funnel;
  * at a specified false positive rate with no false negatives. Like Bloom, a
  * Cuckoo filter can determine if an element is probably inserted or definitely
  * is not. In addition, and unlike standard Bloom filters, Cuckoo filters allow
- * deletions. They also use less space than a Bloom filter for the same
- * performance.
+ * deletions and counting. They also use less space than a Bloom filter for
+ * similar performance.
  *
  * <p>
  * The false positive rate of the filter is the probability that
@@ -51,14 +51,24 @@ import com.google.common.hash.Funnel;
  * {@linkplain #put(Object)} will {@code return false} .
  * 
  * <p>
- * Cuckoo filters allow deletion like counting Bloom filters. While counting
- * Bloom filters invariably use more space to allow deletions, Cuckoo filters
- * achieve this with <i>no</i> space or time cost. Like counting variations of
- * Bloom filters, Cuckoo filters have a limit to the number of times you can
- * insert duplicate items. This limit is 8-9 in the current design, depending on
- * internal state. <i>Reaching this limit can cause further inserts to fail and
- * degrades the performance of the filter</i>. Occasional duplicates will not
- * degrade the performance of the filter but will slightly reduce capacity.
+ * Cuckoo filters allow deletion like counting Bloom filters using
+ * {@code #delete(Object)}. While counting Bloom filters invariably use more
+ * space to allow deletions, Cuckoo filters achieve this with <i>no</i> space or
+ * time cost. Like counting variations of Bloom filters, Cuckoo filters have a
+ * limit to the number of times you can insert duplicate items. This limit is
+ * 8-9 in the current design, depending on internal state. You should never
+ * exceed 7 if possible. <i>Reaching this limit can cause further inserts to
+ * fail and degrades the performance of the filter</i>. Occasional duplicates
+ * will not degrade the performance of the filter but will slightly reduce
+ * capacity.
+ * 
+ * <p>
+ * This Cuckoo filter implementation also allows counting the number of inserts
+ * for each item using {@code #approximateCount(Object)}. This is probabilistic
+ * like the rest of the filter and any error is always an increase. The count
+ * will never return less than the number of actual inserts, but may return
+ * more. The insert limit of 7 still stands when counting so this is only useful
+ * for small numbers.
  * 
  * <p>
  * Once the filter reaches capacity ({@linkplain #put(Object)} returns false).
@@ -76,13 +86,12 @@ import com.google.common.hash.Funnel;
  * with any hash table based structure). If this is an issue for your
  * application, use one of the cryptographically secure (but slower) hash
  * functions. The default hash function, Murmer3 is <i>not</i> secure. Secure
- * functions include SHA and SipHash. All hashes,including non-secure, are
+ * functions include SHA and SipHash. All hashes, including non-secure, are
  * internally seeded and salted. Practical attacks against any of them are
  * unlikely.
  * 
  * <p>
  * This implementation of a Cuckoo filter is serializable.
- * 
  * 
  * @see <a href="https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf">
  *      paper on Cuckoo filter properties.</a>
@@ -90,7 +99,6 @@ import com.google.common.hash.Funnel;
  *      implementation</a>
  * @see <a href="https://github.com/efficient/cuckoofilter">C++ reference
  *      implementation</a>
- *
  *
  * @param <T>
  *            the type of items that the {@code CuckooFilter} accepts
@@ -113,40 +121,35 @@ public final class CuckooFilter<T> implements Serializable {
 	// again don't change this
 	private static final double LOAD_FACTOR = 0.955;
 	private static final double DEFAULT_FP = 0.01;
-	private static final int DEFAULT_CONCURRENCY = 32;
+	private static final int DEFAULT_CONCURRENCY = 16;
 
 	private final FilterTable table;
 	private final IndexTagCalc<T> hasher;
 	private final AtomicLong count;
 	/**
 	 * Only stored for serialization since the bucket locker is transient.
-	 * equals() and hashcode() just check the value in the bucket locker and
-	 * ignore this
+	 * equals() and hashcode() just check the concurrency value in the bucket
+	 * locker and ignore this
 	 */
-	private final int concurrentSegments;
+	private final int expectedConcurrency;
 	private final StampedLock victimLock;
 	private transient SegmentedBucketLocker bucketLocker;
 
 	@VisibleForTesting
 	Victim victim;
 	@VisibleForTesting
-	/**
-	 * we use volatile instead of Atomic since we don't need the implied
-	 * lock(we're already locking the victim lock for read or write whenever we
-	 * check this)
-	 */
-	volatile boolean hasVictim;
+	boolean hasVictim;
 
 	/**
 	 * Creates a Cuckoo filter.
 	 */
 	private CuckooFilter(IndexTagCalc<T> hasher, FilterTable table, AtomicLong count, boolean hasVictim, Victim victim,
-			int concurrentSegments) {
+			int expectedConcurrency) {
 		this.hasher = hasher;
 		this.table = table;
 		this.count = count;
 		this.hasVictim = hasVictim;
-		this.concurrentSegments = concurrentSegments;
+		this.expectedConcurrency = expectedConcurrency;
 		// no nulls even if victim hasn't been used!
 		if (victim == null)
 			this.victim = new Victim();
@@ -154,115 +157,191 @@ public final class CuckooFilter<T> implements Serializable {
 			this.victim = victim;
 
 		this.victimLock = new StampedLock();
-		this.bucketLocker = new SegmentedBucketLocker(concurrentSegments);
+		this.bucketLocker = new SegmentedBucketLocker(expectedConcurrency);
 	}
 
-	/**
-	 * Creates a {@link CuckooFilter CuckooFilter} for the expected number of
-	 * insertions with a false positive rate of 1%
-	 *
-	 * <p>
-	 * Note that overflowing a {@code CuckooFilter} with significantly more
-	 * elements than specified will result in insertion failure.
-	 *
-	 * <p>
-	 * The constructed {@code BloomFilter<T>} will be serializable if the
-	 * provided {@code Funnel<T>} is.
-	 *
-	 * <p>
-	 * It is recommended that the funnel be implemented as a Java enum. This has
-	 * the benefit of ensuring proper serialization and deserialization, which
-	 * is important since {@link #equals} also relies on object identity of
-	 * funnels.
+	/***
+	 * Builds a Cuckoo Filter. To Create a Cuckoo filter, construct this then
+	 * call {@code #build()}.
+	 * 
+	 * @author Mark Gunlogson
 	 *
 	 * @param <T>
-	 *            the type of item filter holds
-	 *
-	 * @param funnel
-	 *            the funnel of T's that the constructed {@code CuckooFilter<T>}
-	 *            will use
-	 * @param maxKeys
-	 *            the number of expected insertions to the constructed
-	 *            {@code CuckooFilter<T>}; must be positive
-	 * 
-	 * @return a {@code CuckooFilter}
+	 *            the type of item {@code Funnel will use}
 	 */
+	public static class Builder<T> {
+		// required arguments
+		private final Funnel<? super T> funnel;
+		private final long maxKeys;
+		// optional arguments
+		private Algorithm hashAlgorithm;
+		private double fpp = DEFAULT_FP;
+		private int expectedConcurrency = DEFAULT_CONCURRENCY;
+
+		/**
+		 * Creates a Builder interface for {@link CuckooFilter CuckooFilter}
+		 * with the expected number of insertions using the default false
+		 * positive rate, {@code #hashAlgorithm}, and concurrency. The default
+		 * false positive rate is 1%. The default hash is Murmur3, automatically
+		 * using the 32 bit version for small tables and 128 bit version for
+		 * larger ones. The default concurrency is 16 expected threads.
+		 *
+		 * <p>
+		 * Note that overflowing a {@code CuckooFilter} with significantly more
+		 * elements than specified will result in insertion failure.
+		 *
+		 * <p>
+		 * The constructed {@code BloomFilter<T>} will be serializable if the
+		 * provided {@code Funnel<T>} is.
+		 *
+		 * <p>
+		 * It is recommended that the funnel be implemented as a Java enum. This
+		 * has the benefit of ensuring proper serialization and deserialization,
+		 * which is important since {@link #equals} also relies on object
+		 * identity of funnels.
+		 *
+		 * @param <T>
+		 *            the type of item filter holds
+		 *
+		 * @param funnel
+		 *            the funnel of T's that the constructed
+		 *            {@code CuckooFilter<T>} will use
+		 * @param maxKeys
+		 *            the number of expected insertions to the constructed
+		 *            {@code CuckooFilter<T>}; must be positive
+		 * 
+		 */
+		public Builder(Funnel<? super T> funnel, long maxKeys) {
+			checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1, increase maxKeys", maxKeys);
+			checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
+			checkArgument(fpp < .25, "fpp (%s) must be < 0.25, decrease fpp", fpp);
+			checkNotNull(funnel);
+			this.funnel = funnel;
+			this.maxKeys = maxKeys;
+		}
+
+		/**
+		 * Creates a Builder interface for {@link CuckooFilter CuckooFilter}
+		 * with the expected number of insertions using the default false
+		 * positive rate, {@code #hashAlgorithm}, and concurrency. The default
+		 * false positive rate is 1%. The default hash is Murmur3, automatically
+		 * using the 32 bit version for small tables and 128 bit version for
+		 * larger ones. The default concurrency is 16 expected threads.
+		 *
+		 * <p>
+		 * Note that overflowing a {@code CuckooFilter} with significantly more
+		 * elements than specified will result in insertion failure.
+		 *
+		 * <p>
+		 * The constructed {@code BloomFilter<T>} will be serializable if the
+		 * provided {@code Funnel<T>} is.
+		 *
+		 * <p>
+		 * It is recommended that the funnel be implemented as a Java enum. This
+		 * has the benefit of ensuring proper serialization and deserialization,
+		 * which is important since {@link #equals} also relies on object
+		 * identity of funnels.
+		 *
+		 * @param <T>
+		 *            the type of item filter holds
+		 *
+		 * @param funnel
+		 *            the funnel of T's that the constructed
+		 *            {@code CuckooFilter<T>} will use
+		 * @param maxKeys
+		 *            the number of expected insertions to the constructed
+		 *            {@code CuckooFilter<T>}; must be positive
+		 * 
+		 */
+		public Builder(Funnel<? super T> funnel, int maxKeys) {
+			this(funnel, (long) maxKeys);
+		}
+
+		/**
+		 * Sets the false positive rate for the filter. The default is 1%.
+		 * Unrealistic values will cause filter creation to fail on
+		 * {@code #build()} due to excessively short fingerprints or memory
+		 * exhaustion. The filter becomes more space efficient than Bloom
+		 * filters below ~0.02 (2%) .
+		 * 
+		 * @param fpp
+		 *            false positive rate ( value is (expected %)/100 ) from 0-1
+		 *            exclusive.
+		 */
+		public Builder<T> falsePositiveRate(double fpp) {
+			this.fpp = fpp;
+			return this;
+		}
+
+		/**
+		 * Sets the hashing algorithm used internally. The default is Murmur3,
+		 * 32 or 128 bit sized automatically. Calling this with a Murmur3
+		 * variant instead of using the default will disable automatic hash
+		 * sizing of Murmur3. The size of the table will be significantly
+		 * limited with a 32 bit hash to around 270 MB. Table size is still
+		 * limited in certain circumstances when using 64 bit hashes like
+		 * SipHash. 128+ bit hashes will allow practically unlimited table size.
+		 * In any case, filter creation will fail on {@code #build()} with an
+		 * invalid configuration.
+		 * 
+		 * @param hashAlgorithm
+		 * @return
+		 */
+		public Builder<T> hashAlgorithm(Algorithm hashAlgorithm) {
+			checkNotNull(hashAlgorithm,
+					"hashAlgorithm cannot be null. To use default, build without calling this method.");
+			this.hashAlgorithm = hashAlgorithm;
+			return this;
+		}
+
+		/***
+		 * 
+		 * Number of simultaneous threads expected to access the filter
+		 * concurrently. The default is 16 threads. It is better to overestimate
+		 * as the cost of more segments is very small and penalty for contention
+		 * is high. This number is not performance critical, any number over the
+		 * actual number of threads and within an order of magnitude will work.
+		 * <i> THIS NUMBER MUST BE A POWER OF 2</i>
+		 * 
+		 * @param expectedConcurrency
+		 *            expected number of threads accessing the filter
+		 *            concurrently.
+		 */
+		public Builder<T> expectedConcurrency(int expectedConcurrency) {
+			checkArgument(expectedConcurrency > 0, "expectedConcurrency (%s) must be > 0.", expectedConcurrency);
+			checkArgument((expectedConcurrency & (expectedConcurrency - 1)) == 0,
+					"expectedConcurrency (%s) must be a power of two.", expectedConcurrency);
+			this.expectedConcurrency = expectedConcurrency;
+			return this;
+		}
+
+		/**
+		 * Builds and returns a {@code CuckooFilter<T>}. Invalid configurations
+		 * will fail on this call.
+		 * 
+		 * @return
+		 */
+		public CuckooFilter<T> build() {
+			int tagBits = Utils.getBitsPerItemForFpRate(fpp, LOAD_FACTOR);
+			long numBuckets = Utils.getBucketsNeeded(maxKeys, LOAD_FACTOR, BUCKET_SIZE);
+			IndexTagCalc<T> hasher;
+			if (hashAlgorithm == null) {
+				hasher = IndexTagCalc.create(funnel, numBuckets, tagBits);
+			} else
+				hasher = IndexTagCalc.create(hashAlgorithm, funnel, numBuckets, tagBits);
+			FilterTable filtertbl = FilterTable.create(tagBits, numBuckets);
+			return new CuckooFilter<>(hasher, filtertbl, new AtomicLong(0), false, null, expectedConcurrency);
+		}
+	}
+
 	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys) {
 		return create(funnel, maxKeys, DEFAULT_FP, null);
 	}
 
-	/**
-	 * Creates a {@link CuckooFilter CuckooFilter} for the expected number of
-	 * insertions and false positive rate
-	 *
-	 * <p>
-	 * Note that overflowing a {@code CuckooFilter} with significantly more
-	 * elements than specified will result in insertion failure.
-	 *
-	 * <p>
-	 * The constructed {@code BloomFilter<T>} will be serializable if the
-	 * provided {@code Funnel<T>} is.
-	 *
-	 * <p>
-	 * It is recommended that the funnel be implemented as a Java enum. This has
-	 * the benefit of ensuring proper serialization and deserialization, which
-	 * is important since {@link #equals} also relies on object identity of
-	 * funnels.
-	 *
-	 * @param <T>
-	 *            the type of item filter holds
-	 *
-	 * @param funnel
-	 *            the funnel of T's that the constructed {@code CuckooFilter<T>}
-	 *            will use
-	 * @param maxKeys
-	 *            the number of expected insertions to the constructed
-	 *            {@code CuckooFilter<T>}; must be positive
-	 * @param fpp
-	 *            the desired false positive probability (must be positive and
-	 *            less than 1.0)
-	 * 
-	 * @return a {@code CuckooFilter}
-	 */
 	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, double fpp) {
 		return create(funnel, maxKeys, fpp, null);
 	}
 
-	/**
-	 * Creates a {@link CuckooFilter CuckooFilter} for the expected number of
-	 * insertions and false positive rate, using the specified hashing
-	 * algorithm.
-	 *
-	 * <p>
-	 * Note that overflowing a {@code CuckooFilter} with significantly more
-	 * elements than specified will result in insertion failure.
-	 *
-	 * <p>
-	 * The constructed {@code BloomFilter<T>} will be serializable if the
-	 * provided {@code Funnel<T>} is.
-	 *
-	 * <p>
-	 * It is recommended that the funnel be implemented as a Java enum. This has
-	 * the benefit of ensuring proper serialization and deserialization, which
-	 * is important since {@link #equals} also relies on object identity of
-	 * funnels.
-	 *
-	 * @param <T>
-	 *            the type of item filter holds
-	 *
-	 * @param funnel
-	 *            the funnel of T's that the constructed {@code CuckooFilter<T>}
-	 *            will use
-	 * @param maxKeys
-	 *            the number of expected insertions to the constructed
-	 *            {@code CuckooFilter<T>}; must be positive
-	 * 
-	 * @param hashAlgorithm
-	 *            the {@code Algorithm} to use for hashing items into the
-	 *            filter.
-	 * 
-	 * @return a {@code CuckooFilter}
-	 */
 	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, Algorithm hashAlgorithm) {
 		checkNotNull(hashAlgorithm);
 		return create(funnel, maxKeys, DEFAULT_FP, hashAlgorithm);
@@ -281,19 +360,19 @@ public final class CuckooFilter<T> implements Serializable {
 			hasher = IndexTagCalc.create(funnel, numBuckets, tagBits);
 		} else
 			hasher = IndexTagCalc.create(hashAlgorithm, funnel, numBuckets, tagBits);
-		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets, maxKeys);
+		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets);
 		return new CuckooFilter<>(hasher, filtertbl, new AtomicLong(0), false, null, DEFAULT_CONCURRENCY);
 
 	}
 
 	/**
 	 * Gets the current number of items in the Cuckoo filter. Can be higher than
-	 * the max number of keys the filter was created to store in some cases.
-	 * Also note that when using multiple threads the count is eventually
-	 * consistent, meaning it will only be completely accurate when multiple
-	 * threads are not doing simultaneous access. This is to avoid an exclusive
-	 * lock which would essentially make {@link #put(Object)} and
-	 * {@link #delete(Object)} single threaded
+	 * the max number of keys the filter was created to store if it is running
+	 * over expected maximum fill capacity. If you need to know that absolute
+	 * maximum number of items this filter can contain, call
+	 * {@code #getActualCapacity()}. If you jusr want to check how full the
+	 * filter is, it's better to use {@code #getLoadFactor()} which is bounded
+	 * at 1.0
 	 * 
 	 * @return number of items in filter
 	 */
@@ -306,17 +385,34 @@ public final class CuckooFilter<T> implements Serializable {
 	 * Gets the current load factor of the Cuckoo filter. Reasonably sized
 	 * filters with randomly distributed values can be expected to reach a load
 	 * factor of around 95% (0.95) before insertion failure. Note that during
-	 * simultaneous access from multiple threads this may not be exact.
+	 * simultaneous access from multiple threads this may not be exact in rare
+	 * cases.
 	 * 
-	 * @return load fraction of total space used
+	 * @return load fraction of total space used, 0-1 inclusive
 	 */
 	public double getLoadFactor() {
 		return count.get() / (hasher.getNumBuckets() * (double) BUCKET_SIZE);
 	}
 
 	/**
-	 * Gets the size of the underlying {@code BitSet} table for the filter, in
-	 * bits. This is <i>not</i> the actual size of the filter in memory.
+	 * Gets the absolute maximum number of items the filter can theoretically
+	 * hold. <i>This is NOT the maximum you can expect it to reliably hold.</i>
+	 * This should only be used if you understand the source. The restrictions
+	 * on backing array size and compensation for the expected filter occupancy
+	 * on failure will almost always make the filter larger than requested on
+	 * creation. This method returns how big the filter actually is (in items)
+	 * <i>DO NOT EXPECT IT TO BE ABLE TO HOLD THIS MANY </i>
+	 * 
+	 * @return number of keys filter can theoretically hold at 100% fill
+	 */
+	public long getActualCapacity() {
+		return hasher.getNumBuckets() * BUCKET_SIZE;
+	}
+
+	/**
+	 * Gets the size of the underlying {@code LongBitSet} table for the filter,
+	 * in bits. This is <i>not</i> the actual size of the filter in memory and
+	 * should only be used if you understand the source.
 	 * 
 	 * @return space used by table in bits
 	 */
@@ -404,36 +500,11 @@ public final class CuckooFilter<T> implements Serializable {
 	 * threads run out of tries simultaneously and all need a place to store a
 	 * victim even though we only have one slot
 	 * 
-	 *
-	 * Unlock both victim and the bucket. Why do we do this? To avoid a series
-	 * of deadlocks and thread stalls. We could keep the victim locked during
-	 * all insertion attempts but this prevents any other threads from doing
-	 * almost every operation!
-	 * 
-	 * So why don't we just lock the victim and both buckets then unlock all
-	 * three at each loop iteration when the table is in a consistent state?
-	 * Another deadlock :). Notice in the bucket locker we use a lock hierarchy,
-	 * always making sure to lock the lower segment's bucket index first when
-	 * doing read or write. We have a ridiculous situation here where we can't
-	 * determine the tag's alternate bucket index without locking one of the
-	 * buckets to read the tag we displaced. Schrodinger's locks if you will.
-	 * This is a problem, since the alternate index could be higher or lower
-	 * than the current one we could end up locking the segments in the opposite
-	 * order we normally do. This would cause random deadlocks on bucket write
-	 * locks in the rare case that another thread is working on the same
-	 * buckets.
-	 * 
-	 * Note that it IS possible for another thread to change or clear the victim
-	 * when we release the locks, and we are okay with that. The table + victim
-	 * just needs to be in a valid state when we release the locks, beyond that
-	 * we rely on hope.
-	 * 
 	 */
 	private boolean trySwapVictimIntoEmptySpot() {
 
 		long curIndex = victim.getI2();
-		// lock bucket. We always use I2 since victim tag might come from bucket
-		// I1
+		// lock bucket. We always use I2 since victim tag is from bucket I1
 		bucketLocker.lockSingleBucketWrite(curIndex);
 		long curTag = table.swapRandomTagInBucket(curIndex, victim.getTag());
 		bucketLocker.unlockSingleBucketWrite(curIndex);
@@ -524,11 +595,11 @@ public final class CuckooFilter<T> implements Serializable {
 	}
 
 	/***
-	 * Checks if the victim is set using a read lock and upgrades to a write
-	 * lock if it is not set. Will either return a write lock stamp if victim is
+	 * Checks if the victim is clear using a read lock and upgrades to a write
+	 * lock if it is clear. Will either return a write lock stamp if victim is
 	 * clear, or zero if a victim is already set.
 	 * 
-	 * @return a write lock stamp for the Victim or 0 if no victim
+	 * @return a write lock stamp for the Victim or 0 if victim is set
 	 */
 	private long writeLockVictimIfClear() {
 		long victimLockstamp = victimLock.readLock();
@@ -561,7 +632,7 @@ public final class CuckooFilter<T> implements Serializable {
 
 	@VisibleForTesting
 	/**
-	 * Checks if a given tag is in the victim.
+	 * Checks if a given tag is the victim.
 	 * 
 	 * @param tagToCheck
 	 *            the tag to check
@@ -610,13 +681,12 @@ public final class CuckooFilter<T> implements Serializable {
 	/**
 	 * This method returns the approximate number of times an item was added to
 	 * the filter. This count is probabilistic like the rest of the filter, so
-	 * items with duplicate tags can artificially raise the count. Since the
-	 * filter has no false negatives, <i>the approximate count will always be
-	 * equal or greater than the actual count(unless you've been deleting
-	 * non-existent items)</i>. That is, this method may return a higher count
-	 * than the true value, but never lower. The false inflation chance of the
-	 * count depends on the filter's false positive rate, but is generally low
-	 * for sane configurations.
+	 * it may occasionally over-count. Since the filter has no false negatives,
+	 * <i>the approximate count will always be equal or greater than the actual
+	 * count(unless you've been deleting non-existent items)</i>. That is, this
+	 * method may return a higher count than the true value, but never lower.
+	 * The false inflation chance of the count depends on the filter's false
+	 * positive rate, but is generally low for sane configurations.
 	 * <p>
 	 * NOTE: Inserting the same key more than 7 times will cause a bucket
 	 * overflow, greatly decreasing the performance of the filter and making
@@ -660,7 +730,9 @@ public final class CuckooFilter<T> implements Serializable {
 	 * otherwise adversely affect the state of the filter, so attempting to
 	 * delete items that <i>may not</i> have been inserted is fine if false
 	 * negatives are acceptable. The false-delete rate is similar to the false
-	 * positive rate.
+	 * positive rate. False deletes can also cause the
+	 * {@code #approximateCount(Object)} to return both lower and higher than
+	 * the real count
 	 *
 	 * @return {@code true} if the cuckoo filter deleted this item successfully.
 	 *         Returns {@code false} if the item was not found.
@@ -711,7 +783,7 @@ public final class CuckooFilter<T> implements Serializable {
 		// default deserialization
 		ois.defaultReadObject();
 		// not serializable so we rebuild here
-		bucketLocker = new SegmentedBucketLocker(concurrentSegments);
+		bucketLocker = new SegmentedBucketLocker(expectedConcurrency);
 	}
 
 	@Override
@@ -725,8 +797,7 @@ public final class CuckooFilter<T> implements Serializable {
 			bucketLocker.lockAllBucketsRead();
 			try {
 				if (hasVictim) {
-					// only compare victim if set, victim data is sometimes
-					// stale
+					// only compare victim if set, victim is sometimes stale
 					// since we use bool flag to determine if set or not
 					return this.hasher.equals(that.hasher) && this.table.equals(that.table)
 							&& this.count.get() == that.count.get() && this.hasVictim == that.hasVictim
@@ -761,7 +832,8 @@ public final class CuckooFilter<T> implements Serializable {
 	 * Creates a new {@code CuckooFilter} that's a copy of this instance. The
 	 * new instance is equal to this instance but shares no mutable state. Note
 	 * that further {@code #put(Object)}} operations <i>may</i> cause a copy to
-	 * diverge even if the same operations are performed to both copies.
+	 * diverge even if the same operations are performed to both filters since
+	 * bucket swaps are essentially random.
 	 * 
 	 * @return a copy of the filter
 	 */
@@ -769,7 +841,8 @@ public final class CuckooFilter<T> implements Serializable {
 		victimLock.readLock();
 		bucketLocker.lockAllBucketsRead();
 		try {
-			return new CuckooFilter<>(hasher.copy(), table.copy(), count, hasVictim, victim.copy(), concurrentSegments);
+			return new CuckooFilter<>(hasher.copy(), table.copy(), count, hasVictim, victim.copy(),
+					expectedConcurrency);
 		} finally {
 			bucketLocker.unlockAllBucketsRead();
 			victimLock.tryUnlockRead();

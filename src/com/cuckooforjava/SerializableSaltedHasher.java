@@ -11,7 +11,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.TWARE.
+   limitations under the License.
 */
 
 package com.cuckooforjava;
@@ -35,10 +35,19 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+/**
+ * Serializable, salted wrapper class for Guava's HashFunctions exists because
+ * Guava doesn't setup salt and seed automatically and because Guavas's
+ * HashFunction is NOT serializable
+ * 
+ * @author Mark Gunlogson
+ *
+ * @param <T>
+ *            type of item to hash
+ */
 public class SerializableSaltedHasher<T> implements Serializable {
 	/**
-	 * exists because Guava doesn't setup salt and seed automatically and
-	 * because Guavas's HashFunction is NOT serializable
+	
 	 */
 	private static final long serialVersionUID = 1L;
 	private final long seedNSalt;// provides some protection against collision
@@ -48,44 +57,41 @@ public class SerializableSaltedHasher<T> implements Serializable {
 	private transient HashFunction hasher;
 	private final Funnel<? super T> funnel;
 
-	
 	@VisibleForTesting
-	 SerializableSaltedHasher(long seedNSalt,long addlSipSeed, Funnel<? super T> funnel, Algorithm alg) {
+	SerializableSaltedHasher(long seedNSalt, long addlSipSeed, Funnel<? super T> funnel, Algorithm alg) {
 		checkNotNull(alg);
 		checkNotNull(funnel);
 		this.alg = alg;
 		this.funnel = funnel;
 		this.seedNSalt = seedNSalt;
 		this.addlSipSeed = addlSipSeed;
-		hasher = configureHash(alg,seedNSalt,addlSipSeed);
+		hasher = configureHash(alg, seedNSalt, addlSipSeed);
 	}
-	
-	
-	public static <T> SerializableSaltedHasher<T> create(int hashBitsNeeded,Funnel<? super T> funnel) {
+
+	public static <T> SerializableSaltedHasher<T> create(int hashBitsNeeded, Funnel<? super T> funnel) {
 		Algorithm alg = Algorithm.Murmur3_32;
-		if(hashBitsNeeded>32)
-			alg=Algorithm.Murmur3_128;
-		return  create(alg,funnel);
+		if (hashBitsNeeded > 32)
+			alg = Algorithm.Murmur3_128;
+		return create(alg, funnel);
 	}
 
 	public static <T> SerializableSaltedHasher<T> create(Algorithm alg, Funnel<? super T> funnel) {
 		checkNotNull(alg);
 		checkNotNull(funnel);
-		SecureRandom randomer =new SecureRandom();
+		SecureRandom randomer = new SecureRandom();
 		long seedNSalt = randomer.nextLong();
 		long addlSipSeed = randomer.nextLong();
-		return new SerializableSaltedHasher<>(seedNSalt,addlSipSeed,funnel,alg);
+		return new SerializableSaltedHasher<>(seedNSalt, addlSipSeed, funnel, alg);
 	}
-
 
 	private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
 		// default deserialization
 		ois.defaultReadObject();
-		//not serializable so we rebuild here
-		hasher = configureHash(alg,seedNSalt,addlSipSeed);
+		// not serializable so we rebuild here
+		hasher = configureHash(alg, seedNSalt, addlSipSeed);
 	}
 
-	private static HashFunction configureHash( Algorithm alg,long seedNSalt,long addlSipSeed) {
+	private static HashFunction configureHash(Algorithm alg, long seedNSalt, long addlSipSeed) {
 		switch (alg) {
 		case Murmur3_32:
 			return Hashing.murmur3_32((int) seedNSalt);
@@ -94,7 +100,7 @@ public class SerializableSaltedHasher<T> implements Serializable {
 		case sha256:
 			return Hashing.sha1();
 		case sipHash24:
-			return Hashing.sipHash24(seedNSalt,addlSipSeed );
+			return Hashing.sipHash24(seedNSalt, addlSipSeed);
 		default:
 			throw new IllegalArgumentException("Invalid Enum Hashing Algorithm???");
 		}
@@ -107,6 +113,12 @@ public class SerializableSaltedHasher<T> implements Serializable {
 		return hashInst.hash();
 	}
 
+	/**
+	 * hashes the object with an additional salt. For purpose of the cuckoo
+	 * filter, this is used when the hash generated for an item is all zeros.
+	 * All zeros is the same as an empty bucket, so obviously it's not a valid
+	 * tag. 
+	 */
 	HashCode hashObjWithSalt(T object, int moreSalt) {
 		Hasher hashInst = hasher.newHasher();
 		hashInst.putObject(object, funnel);
@@ -122,23 +134,24 @@ public class SerializableSaltedHasher<T> implements Serializable {
 		}
 		if (object instanceof SerializableSaltedHasher) {
 			SerializableSaltedHasher<?> that = (SerializableSaltedHasher<?>) object;
-			return this.seedNSalt == that.seedNSalt && this.alg.equals(that.alg) && this.funnel.equals(that.funnel) && this.addlSipSeed == that.addlSipSeed;
+			return this.seedNSalt == that.seedNSalt && this.alg.equals(that.alg) && this.funnel.equals(that.funnel)
+					&& this.addlSipSeed == that.addlSipSeed;
 		}
 		return false;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(seedNSalt, alg, funnel,addlSipSeed);
+		return Objects.hash(seedNSalt, alg, funnel, addlSipSeed);
 	}
-	
+
 	int codeBitSize() {
 		return hasher.bits();
 	}
 
 	public SerializableSaltedHasher<T> copy() {
 
-		return new SerializableSaltedHasher<>(seedNSalt,addlSipSeed, funnel, alg);
+		return new SerializableSaltedHasher<>(seedNSalt, addlSipSeed, funnel, alg);
 	}
 
 }

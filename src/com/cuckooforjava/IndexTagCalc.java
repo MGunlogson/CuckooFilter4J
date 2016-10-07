@@ -11,7 +11,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.TWARE.
+   limitations under the License.
 */
 
 package com.cuckooforjava;
@@ -30,10 +30,17 @@ import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
 import com.google.common.primitives.Longs;
 
+/**
+ * Hopefully keeping this class as simple as possible will allow JVM to prevent
+ * allocating these entirely.
+ * 
+ * @author Mark Gunlogson
+ *
+ */
 class BucketAndTag {
 
-	public final long index;
-	public final long tag;
+	final long index;
+	final long tag;
 
 	BucketAndTag(long bucketIndex, long tag) {
 		this.index = bucketIndex;
@@ -41,6 +48,14 @@ class BucketAndTag {
 	}
 }
 
+/**
+ * This class calculates tag and bucket indexes for items.
+ * 
+ * @author Mark Gunlogson
+ *
+ * @param <T>
+ *            type of item to hash
+ */
 class IndexTagCalc<T> implements Serializable {
 	private static final long serialVersionUID = -2052598678199099089L;
 
@@ -55,7 +70,7 @@ class IndexTagCalc<T> implements Serializable {
 		checkArgument((numBuckets & -numBuckets) == numBuckets, "Number of buckets (%s) must be a power of two",
 				numBuckets);
 		checkArgument(tagBits > 0, "Number of tag bits (%s) must be positive", tagBits);
-		// no  matter the hash function we use index and tag are always longs.
+		// no matter the hash function we use index and tag are always longs.
 		// So, make sure user didn't choose obscenely large fingerprints
 		checkArgument(tagBits <= 64, "Number of tag bits (%s) must be <= 64", tagBits);
 		checkArgument(numBuckets > 1, "Number of buckets (%s) must be more than 1", numBuckets);
@@ -67,18 +82,17 @@ class IndexTagCalc<T> implements Serializable {
 				"Unsupported Hash Configuration! Hash must be 32, 64, or more than 128 bits and index and tag must fit within hash size. Make table smaller, or use a longer hash.");
 	}
 
-	public static <T> IndexTagCalc<T> create(Algorithm hasherAlg, Funnel<? super T> funnel, long numBuckets,
-			int tagBits) {
+	static <T> IndexTagCalc<T> create(Algorithm hasherAlg, Funnel<? super T> funnel, long numBuckets, int tagBits) {
 		SerializableSaltedHasher<T> hasher = SerializableSaltedHasher.create(hasherAlg, funnel);
 		return new IndexTagCalc<>(hasher, numBuckets, tagBits);
 	}
 
-	public static <T> IndexTagCalc<T> create(Funnel<? super T> funnel, long numBuckets, int tagBits) {
+	static <T> IndexTagCalc<T> create(Funnel<? super T> funnel, long numBuckets, int tagBits) {
 		int hashBitsNeeded = getTotalBitsNeeded(numBuckets, tagBits);
 		return new IndexTagCalc<>(SerializableSaltedHasher.create(hashBitsNeeded, funnel), numBuckets, tagBits);
 	}
 
-	public long getNumBuckets() {
+	long getNumBuckets() {
 		return numBuckets;
 	}
 
@@ -91,6 +105,11 @@ class IndexTagCalc<T> implements Serializable {
 		return 64 - Long.numberOfLeadingZeros(numBuckets);
 	}
 
+	/**
+	 * Determines if the chosen hash function is long enough for the table
+	 * configuration used.
+	 * 
+	 */
 	private static boolean isHashConfigurationIsSupported(long numBuckets, int tagBits, int hashSize) {
 		int hashBitsNeeded = getTotalBitsNeeded(numBuckets, tagBits);
 		switch (hashSize) {
@@ -99,12 +118,24 @@ class IndexTagCalc<T> implements Serializable {
 			return hashBitsNeeded <= hashSize;
 		default:
 		}
-		if(hashSize>=128)
-			return tagBits <= 64 && getIndexBitsUsed(numBuckets)<=64;
+		if (hashSize >= 128)
+			return tagBits <= 64 && getIndexBitsUsed(numBuckets) <= 64;
 		return false;
 	}
 
-	public BucketAndTag generate(T item) {
+	/**
+	 * Generates the Bucket Index and Tag for a given item. Handling is
+	 * different for 32,64,and 128+ hashes to best use the number of bits
+	 * available. Specifically for 32 and 64 bit hashes we need to shift off
+	 * bits for the tag and index since they are bigger than the hash (they are
+	 * longs...64 bits each). For anything less than 128 bit hashes there is a
+	 * limit to (bucket number + tag bits) for this reason. The
+	 * {@code #getTotalBitsNeeded(long, int) in
+	 * {@code #isHashConfigurationIsSupported(long, int, int)} makes sure we
+	 * have enough bits for the filter size when the table is constructed.
+	 * 
+	 */
+	BucketAndTag generate(T item) {
 		/*
 		 * How do we get tag and bucketIndex from a single 32 bit hash? Max
 		 * filter size is constrained to 32 bits of bits (by BitSet) So, the bit
@@ -112,8 +143,8 @@ class IndexTagCalc<T> implements Serializable {
 		 * offset is BUCKET_SIZE*bucketIndex*tagBits, we can never use more than
 		 * 32 bits of hash for tagBits+bucketIndex
 		 */
-		long tag=0;
-		long bucketIndex=0;
+		long tag = 0;
+		long bucketIndex = 0;
 		HashCode code = hasher.hashObj(item);
 		// 32 bit hash
 		if (hashLength == 32) {
@@ -137,9 +168,8 @@ class IndexTagCalc<T> implements Serializable {
 				assert salt < 100;// shouldn't happen in our timeline
 			}
 		}
-		//>=128
-		else
-		{
+		// >=128
+		else {
 			byte[] hashVal = code.asBytes();
 			bucketIndex = getBucketIndex64(longFromLowBytes(hashVal));
 			// loop until tag isn't equal to empty bucket (0)
@@ -172,6 +202,7 @@ class IndexTagCalc<T> implements Serializable {
 		// just use everything we're not using for tag, why not
 		return hashIndex(hashVal >>> tagBits);
 	}
+
 	@VisibleForTesting
 	long getTagValue64(long hashVal) {
 		/*
@@ -181,7 +212,8 @@ class IndexTagCalc<T> implements Serializable {
 		 * it makes testing easier
 		 */
 		// shift out bits we don't need, then shift back to right side
-		//NOTE: must be long because java will only shift up to 31 bits if right operand is an int!!
+		// NOTE: must be long because java will only shift up to 31 bits if
+		// right operand is an int!!
 		long unusedBits = Long.SIZE - tagBits;
 		return (hashVal << unusedBits) >>> unusedBits;
 	}
@@ -192,18 +224,20 @@ class IndexTagCalc<T> implements Serializable {
 		// just use everything we're not using for tag, why not
 		return hashIndex(hashVal >>> tagBits);
 	}
-	private long longFromHighBytes(byte[] bytes)
-	{
+
+	private long longFromHighBytes(byte[] bytes) {
 		return Longs.fromBytes(bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
 	}
-	private long longFromLowBytes(byte [] bytes)
-	{
+
+	private long longFromLowBytes(byte[] bytes) {
 		return Longs.fromBytes(bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]);
 	}
-	public long altIndex(long bucketIndex, long tag) {
+
+	long altIndex(long bucketIndex, long tag) {
 		/*
-		 * 0xc4ceb9fe1a85ec53L hash mixing constant from MurmurHash3...interesting. Similar value used in
-		 * reference implementation https://github.com/efficient/cuckoofilter/
+		 * 0xc4ceb9fe1a85ec53L hash mixing constant from
+		 * MurmurHash3...interesting. Similar value used in reference
+		 * implementation https://github.com/efficient/cuckoofilter/
 		 */
 		long altIndex = bucketIndex ^ (tag * 0xc4ceb9fe1a85ec53L);
 		// flip bits if negative
@@ -213,7 +247,7 @@ class IndexTagCalc<T> implements Serializable {
 		return hashIndex(altIndex);
 	}
 
-	public long hashIndex(long altIndex) {
+	long hashIndex(long altIndex) {
 		/*
 		 * we always need to return a bucket index within table range if we try
 		 * to range it later during read/write things will go terribly wrong
@@ -240,7 +274,7 @@ class IndexTagCalc<T> implements Serializable {
 		return Objects.hash(hasher, numBuckets, tagBits);
 	}
 
-	public IndexTagCalc<T> copy() {
+	IndexTagCalc<T> copy() {
 		return new IndexTagCalc<>(hasher.copy(), numBuckets, tagBits);
 	}
 

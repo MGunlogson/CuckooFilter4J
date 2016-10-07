@@ -1,3 +1,19 @@
+/*
+   Copyright 2016 Mark Gunlogson
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 package com.cuckooforjava;
 
 import java.io.Serializable;
@@ -8,6 +24,12 @@ import javax.annotation.Nullable;
 
 import com.google.common.math.DoubleMath;
 
+/**
+ * Enums, small objects, and internal calculation used by the filter
+ * 
+ * @author Mark Gunlogson
+ *
+ */
 public class Utils {
 
 	/**
@@ -119,7 +141,7 @@ public class Utils {
 	 * @return the length of the tag needed (in bits) to reach the false
 	 *         positive rate.
 	 */
-	public static int getBitsPerItemForFpRate(double fpProb,double loadFactor) {
+	static int getBitsPerItemForFpRate(double fpProb,double loadFactor) {
 		/*
 		 * equation from Cuckoo Filter: Practically Better Than Bloom Bin Fan,
 		 * David G. Andersen, Michael Kaminsky , Michael D. Mitzenmacher
@@ -136,7 +158,7 @@ public class Utils {
 	 *            insertion failure.
 	 * @return The number of buckets needed
 	 */
-	public static long getBucketsNeeded(long maxKeys,double loadFactor,int bucketSize) {
+	static long getBucketsNeeded(long maxKeys,double loadFactor,int bucketSize) {
 		/*
 		 * force a power-of-two bucket count so hash functions for bucket index
 		 * can hashBits%numBuckets and get randomly distributed index. See wiki

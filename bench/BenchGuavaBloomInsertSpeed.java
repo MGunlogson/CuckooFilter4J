@@ -11,7 +11,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.TWARE.
+   limitations under the License.
 */
 
 import java.util.ArrayList;
@@ -24,7 +24,7 @@ public class BenchGuavaBloomInsertSpeed {
 	public static void main(String[] args) throws Exception {
 		long cuckooTime;
 		long bloomTime;
-		int filterSize=10000000;
+		int filterSize=100000000;
 			// create filters
 			CuckooFilter<Integer> cuckoo = CuckooFilter.create(Funnels.integerFunnel(), filterSize, 0.03);
 			BloomFilter<Integer> bloom = BloomFilter.create(Funnels.integerFunnel(), filterSize, 0.03);

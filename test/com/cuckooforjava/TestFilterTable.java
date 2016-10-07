@@ -11,7 +11,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.TWARE.
+   limitations under the License.
 */
 
 package com.cuckooforjava;
@@ -30,27 +30,27 @@ public class TestFilterTable {
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs() {
-		FilterTable.create(0, 100, 10000);
+		FilterTable.create(0, 100);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs2() {
-		FilterTable.create(5, 0, 10000);
+		FilterTable.create(5, 0);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs3() {
-		FilterTable.create(5, 100, 0);
+		FilterTable.create(5, 100);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testTagTooBig() {
-		FilterTable.create(60, 100, 10000);
+		FilterTable.create(60, 100);
 	}
 
 	@Test
 	public void testSimpleReadWriteTag() {
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		int testTag = 0b00000000000000000000000000011111;
 		for (int posInBucket = 0; posInBucket < 4; posInBucket++) {
 			for (int bucket = 0; bucket < 1000; bucket++) {
@@ -64,7 +64,7 @@ public class TestFilterTable {
 
 	@Test
 	public void testSimpleDeleteTag() {
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		int testTag = 0b00000000000000000000000000011111;
 		// fill all bucket positions
 		for (int posInBucket = 0; posInBucket < 4; posInBucket++) {
@@ -93,7 +93,7 @@ public class TestFilterTable {
 
 	@Test
 	public void testSimpleFindTag() {
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		int testTag = 0b00000000000000000000000000011111;
 		table.writeTagNoClear(1, 2, testTag);
 		assertFalse(table.findTag(2, 3, testTag));
@@ -106,7 +106,7 @@ public class TestFilterTable {
 	@Test
 	public void testOverFillBucket() {
 		int testTag = 0b00000000000000000000000000011111;
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
 		assertTrue(table.insertToBucket(5, testTag));
 		assertTrue(table.insertToBucket(5, testTag));
@@ -118,7 +118,7 @@ public class TestFilterTable {
 	@Test
 	public void testTagSwap() {
 		int testTag = 0b00000000000000000000000000011111;
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
 		assertTrue(table.insertToBucket(5, testTag));
 		assertTrue(table.insertToBucket(5, testTag));
@@ -134,7 +134,7 @@ public class TestFilterTable {
 
 	@Test
 	public void testTagSwap2() {
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
 		assertTrue(table.insertToBucket(5, 1L));
 		assertTrue(table.insertToBucket(5, 2L));
@@ -162,7 +162,7 @@ public class TestFilterTable {
 	@Test
 	public void testBitBleedWithinBucket() {
 		int canaryTag = 0b11111111111111111111111111111111;
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
 		table.writeTagNoClear(5, 0, canaryTag);
 		table.writeTagNoClear(5, 2, canaryTag);
@@ -174,7 +174,7 @@ public class TestFilterTable {
 	@Test
 	public void testDeleteCorrectBits() {
 		int canaryTag = 0b111111111111;
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
 		table.writeTagNoClear(5, 0, canaryTag);
 		table.writeTagNoClear(5, 1, canaryTag);
@@ -191,7 +191,7 @@ public class TestFilterTable {
 	@Test
 	public void testBitBleedBetweenBuckets() {
 		int canaryTag = 0b11111111111111111111111111111111;
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
 		table.writeTagNoClear(5, 0, canaryTag);
 		table.writeTagNoClear(5, 3, canaryTag);
@@ -205,14 +205,14 @@ public class TestFilterTable {
 		new EqualsTester()
 				// we don't test arg2 because numbuckets is only used to create
 				// BitSet of estimated proper size.
-				.addEqualityGroup(FilterTable.create(12, 1000, 2000000))
-				.addEqualityGroup(FilterTable.create(13, 1000, 2000000))
-				.addEqualityGroup(FilterTable.create(12, 1000, 3000000)).testEquals();
+				.addEqualityGroup(FilterTable.create(12, 1000))
+				.addEqualityGroup(FilterTable.create(13, 1000))
+				.addEqualityGroup(FilterTable.create(12, 1000)).testEquals();
 	}
 
 	@Test
 	public void testCopy() {
-		FilterTable table = FilterTable.create(12, 1000, 2000000);
+		FilterTable table = FilterTable.create(12, 1000);
 		FilterTable tableCopy = table.copy();
 		assertTrue(tableCopy.equals(table));
 		assertNotSame(table, tableCopy);
@@ -226,7 +226,7 @@ public class TestFilterTable {
 
 	@Test
 	public void testSerialize() {
-		SerializableTester.reserializeAndAssert(FilterTable.create(12, 1000, 2000000));
+		SerializableTester.reserializeAndAssert(FilterTable.create(12, 1000));
 	}
 
 }

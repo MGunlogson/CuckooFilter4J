@@ -11,7 +11,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.TWARE.
+   limitations under the License.
 */
 
 package com.cuckooforjava;
@@ -30,13 +30,20 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.math.IntMath;
 import com.google.common.math.LongMath;
 
+/**
+ * This class represents the link to access methods on the underlying BitSet.
+ * 
+ * @author Mark Gunlogson
+ *
+ */
 class FilterTable implements Serializable {
 	private static final long serialVersionUID = 4172048932165857538L;
 	/*
 	 * NOTE: Google's Guava library uses a custom BitSet implementation that
 	 * looks to be adapted from the Lucene project. Guava project notes show
 	 * this seems to be done for faster serialization and support for
-	 * longs(giant filters)
+	 * longs(giant filters). We just use the Lucene LongBitSet directly to make
+	 * updates easier.
 	 * 
 	 * NOTE: for speed, we don't check for inserts into invalid bucket indexes
 	 * or bucket positions!
@@ -45,31 +52,46 @@ class FilterTable implements Serializable {
 
 	private final int bitsPerTag;
 
-	private final long maxKeys;
 	private final long numBuckets;
 
-	private FilterTable(LongBitSet memBlock, int bitsPerTag, long maxKeys, long numBuckets) {
+	private FilterTable(LongBitSet memBlock, int bitsPerTag, long numBuckets) {
 		this.bitsPerTag = bitsPerTag;
 		this.memBlock = memBlock;
-		this.maxKeys = maxKeys;
 		this.numBuckets = numBuckets;
 	}
 
-	public static FilterTable create(int bitsPerTag, long numBuckets, long maxKeys) {
+	/**
+	 * Creates a FilterTable
+	 * 
+	 * @param bitsPerTag
+	 *            number of bits needed for each tag
+	 * @param numBuckets
+	 *            number of buckets in filter
+	 * @return
+	 */
+	public static FilterTable create(int bitsPerTag, long numBuckets) {
 		// why would this ever happen?
 		checkArgument(bitsPerTag < 48, "tagBits (%s) should be less than 48 bits", bitsPerTag);
 		// shorter fingerprints don't give us a good fill capacity
 		checkArgument(bitsPerTag > 4, "tagBits (%s) must be > 4", bitsPerTag);
 		checkArgument(numBuckets > 1, "numBuckets (%s) must be > 1", numBuckets);
-		checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1", maxKeys);
 		// checked so our implementors don't get too.... "enthusiastic" with
 		// table size
 		long bitsPerBucket = IntMath.checkedMultiply(CuckooFilter.BUCKET_SIZE, bitsPerTag);
 		long bitSetSize = LongMath.checkedMultiply(bitsPerBucket, numBuckets);
 		LongBitSet memBlock = new LongBitSet(bitSetSize);
-		return new FilterTable(memBlock, bitsPerTag, maxKeys, numBuckets);
+		return new FilterTable(memBlock, bitsPerTag, numBuckets);
 	}
 
+	/**
+	 * inserts a tag into an empty position in the chosen bucket.
+	 * 
+	 * @param bucketIndex
+	 *            index
+	 * @param tag
+	 *            tag
+	 * @return true if insert succeeded(bucket not full)
+	 */
 	public boolean insertToBucket(long bucketIndex, long tag) {
 
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
@@ -81,11 +103,32 @@ class FilterTable implements Serializable {
 		return false;
 	}
 
+	/**
+	 * Replaces a tag in a random position in the given bucket and returns the
+	 * tag that was replaced.
+	 * 
+	 * @param curIndex
+	 *            bucket index
+	 * @param tag
+	 *            tag
+	 * @return the replaced tag
+	 */
 	public long swapRandomTagInBucket(long curIndex, long tag) {
 		int randomBucketPosition = ThreadLocalRandom.current().nextInt(CuckooFilter.BUCKET_SIZE);
 		return readTagAndSet(curIndex, randomBucketPosition, tag);
 	}
 
+	/**
+	 * Finds a tag if present in two buckets.
+	 * 
+	 * @param i1
+	 *            first bucket index
+	 * @param i2
+	 *            second bucket index(alternate)
+	 * @param tag
+	 *            tag
+	 * @return true if tag found in one of the buckets
+	 */
 	public boolean findTag(long i1, long i2, long tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (checkTag(i1, i, tag) || checkTag(i2, i, tag))
@@ -100,6 +143,15 @@ class FilterTable implements Serializable {
 		return memBlock.length();
 	}
 
+	/**
+	 * Deletes an item from the table if it is found in the bucket
+	 * 
+	 * @param i1
+	 *            bucket index
+	 * @param tag
+	 *            tag
+	 * @return true if item was deleted
+	 */
 	public boolean deleteFromBucket(long i1, long tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (checkTag(i1, i, tag)) {
@@ -111,7 +163,7 @@ class FilterTable implements Serializable {
 	}
 
 	/**
-	 * Works but currently only used for testing 
+	 * Works but currently only used for testing
 	 */
 	@VisibleForTesting
 	long readTag(long bucketIndex, int posInBucket) {
@@ -127,7 +179,8 @@ class FilterTable implements Serializable {
 	}
 
 	/**
-	 * reads and sets bits at same time for max speedification
+	 * Reads a tag and sets the bits to a new tag at same time for max
+	 * speedification
 	 */
 	@VisibleForTesting
 	long readTagAndSet(long bucketIndex, int posInBucket, long newTag) {
@@ -151,28 +204,24 @@ class FilterTable implements Serializable {
 	}
 
 	/**
-	 * Faster than regular read because it stops checking if it finds a
+	 * Check if a tag in a given position in a bucket matches the tag you passed
+	 * it. Faster than regular read because it stops checking if it finds a
 	 * non-matching bit.
 	 */
 	@VisibleForTesting
 	boolean checkTag(long bucketIndex, int posInBucket, long tag) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
-		long tagEndIdx = tagStartIdx + bitsPerTag;
-		int tagPos = 0;
-		for (long i = tagStartIdx; i < tagEndIdx; i++) {
-			boolean tagBitIsSet = (tag & (1L << tagPos)) != 0;
-			if (memBlock.get(i) != tagBitIsSet)
+		for (long i = 0; i < bitsPerTag; i++) {
+			boolean tagBitIsSet = (tag & (1L << i)) != 0;
+			if (memBlock.get(i + tagStartIdx) != tagBitIsSet)
 				return false;
-			tagPos++;
 		}
 		return true;
 	}
-	
-	
 
 	/**
 	 * Similar to checkTag() except it counts the number of matches in the
-	 * bucket.
+	 * buckets.
 	 */
 	@VisibleForTesting
 	int countTag(long i1, long i2, long tag) {
@@ -187,7 +236,9 @@ class FilterTable implements Serializable {
 	}
 
 	/**
-	 * faster than regular write because it assumes tag starts with all zeros
+	 * Writes a tag to a bucket position. Faster than regular write because it
+	 * assumes tag starts with all zeros, but doesn't work properly if the
+	 * position wasn't empty.
 	 */
 	@VisibleForTesting
 	void writeTagNoClear(long bucketIndex, int posInBucket, long tag) {
@@ -216,12 +267,25 @@ class FilterTable implements Serializable {
 	// }
 	// }
 
+	/**
+	 *  Deletes (clears) a tag at a specific bucket index and position
+	 * 
+	 * @param bucketIndex bucket index
+	 * @param posInBucket position in bucket
+	 */
 	@VisibleForTesting
 	void deleteTag(long bucketIndex, int posInBucket) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		memBlock.clear(tagStartIdx, tagStartIdx + bitsPerTag);
 	}
 
+	/**
+	 *  Finds the bit offset in the bitset for a tag
+	 * 
+	 * @param bucketIndex  the bucket index
+	 * @param posInBucket  position in bucket
+	 * @return
+	 */
 	private long getTagOffset(long bucketIndex, int posInBucket) {
 		return (bucketIndex * CuckooFilter.BUCKET_SIZE * bitsPerTag) + (posInBucket * bitsPerTag);
 	}
@@ -234,18 +298,18 @@ class FilterTable implements Serializable {
 		if (object instanceof FilterTable) {
 			FilterTable that = (FilterTable) object;
 			return this.bitsPerTag == that.bitsPerTag && this.memBlock.equals(that.memBlock)
-					&& this.maxKeys == that.maxKeys && this.numBuckets == that.numBuckets;
+					&& this.numBuckets == that.numBuckets;
 		}
 		return false;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(bitsPerTag, memBlock, maxKeys, numBuckets);
+		return Objects.hash(bitsPerTag, memBlock, numBuckets);
 	}
 
 	public FilterTable copy() {
-		return new FilterTable(memBlock.clone(), bitsPerTag, maxKeys, numBuckets);
+		return new FilterTable(memBlock.clone(), bitsPerTag, numBuckets);
 	}
 
 }
