@@ -24,7 +24,7 @@ public class BenchGuavaBloomInsertSpeed {
 	public static void main(String[] args) throws Exception {
 		long cuckooTime;
 		long bloomTime;
-		int filterSize=1000000;
+		int filterSize=10000000;
 			// create filters
 			CuckooFilter<Integer> cuckoo = CuckooFilter.create(Funnels.integerFunnel(), filterSize, 0.03);
 			BloomFilter<Integer> bloom = BloomFilter.create(Funnels.integerFunnel(), filterSize, 0.03);

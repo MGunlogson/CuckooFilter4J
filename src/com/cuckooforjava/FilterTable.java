@@ -110,6 +110,9 @@ class FilterTable implements Serializable {
 		return false;
 	}
 
+	/**
+	 * Works but currently only used for testing 
+	 */
 	@VisibleForTesting
 	long readTag(long bucketIndex, int posInBucket) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
@@ -164,6 +167,8 @@ class FilterTable implements Serializable {
 		}
 		return true;
 	}
+	
+	
 
 	/**
 	 * Similar to checkTag() except it counts the number of matches in the
