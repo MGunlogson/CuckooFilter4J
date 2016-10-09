@@ -202,8 +202,6 @@ public final class CuckooFilter<T> implements Serializable {
 		 * which is important since {@link #equals} also relies on object
 		 * identity of funnels.
 		 *
-		 * @param <T>
-		 *            the type of item filter holds
 		 *
 		 * @param funnel
 		 *            the funnel of T's that the constructed
@@ -242,8 +240,6 @@ public final class CuckooFilter<T> implements Serializable {
 		 * which is important since {@link #equals} also relies on object
 		 * identity of funnels.
 		 *
-		 * @param <T>
-		 *            the type of item filter holds
 		 *
 		 * @param funnel
 		 *            the funnel of T's that the constructed
@@ -267,6 +263,7 @@ public final class CuckooFilter<T> implements Serializable {
 		 * @param fpp
 		 *            false positive rate ( value is (expected %)/100 ) from 0-1
 		 *            exclusive.
+		 * @return The builder interface
 		 */
 		public Builder<T> withFalsePositiveRate(double fpp) {
 			checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
@@ -286,8 +283,8 @@ public final class CuckooFilter<T> implements Serializable {
 		 * In any case, filter creation will fail on {@code #build()} with an
 		 * invalid configuration.
 		 * 
-		 * @param hashAlgorithm
-		 * @return
+		 * @param hashAlgorithm the hashing algorithm used by the filter.
+		 * @return The builder interface
 		 */
 		public Builder<T> withHashAlgorithm(Algorithm hashAlgorithm) {
 			checkNotNull(hashAlgorithm,
@@ -308,6 +305,9 @@ public final class CuckooFilter<T> implements Serializable {
 		 * @param expectedConcurrency
 		 *            expected number of threads accessing the filter
 		 *            concurrently.
+		 *            
+		 * @return The builder interface   
+		 *            
 		 */
 		public Builder<T> withExpectedConcurrency(int expectedConcurrency) {
 			checkArgument(expectedConcurrency > 0, "expectedConcurrency (%s) must be > 0.", expectedConcurrency);
@@ -321,7 +321,7 @@ public final class CuckooFilter<T> implements Serializable {
 		 * Builds and returns a {@code CuckooFilter<T>}. Invalid configurations
 		 * will fail on this call.
 		 * 
-		 * @return
+		 * @return a Cuckoo filter of type T
 		 */
 		public CuckooFilter<T> build() {
 			int tagBits = Utils.getBitsPerItemForFpRate(fpp, LOAD_FACTOR);
