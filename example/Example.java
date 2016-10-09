@@ -15,13 +15,14 @@
 */
 
 import com.cuckooforjava.CuckooFilter;
+import com.cuckooforjava.Utils.Algorithm;
 import com.google.common.hash.Funnels;
 
 public class Example {
 
 	public static void main(String[] args) {
 		// create
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 100000);
+		CuckooFilter<Integer> filter = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 100000).build();
 		// insert
 		if (filter.put(42)) {
 			System.out.println("Insert Success!");

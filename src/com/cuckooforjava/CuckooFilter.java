@@ -123,8 +123,10 @@ public final class CuckooFilter<T> implements Serializable {
 	private static final double DEFAULT_FP = 0.01;
 	private static final int DEFAULT_CONCURRENCY = 16;
 
-	private final FilterTable table;
-	private final IndexTagCalc<T> hasher;
+	@VisibleForTesting
+	final FilterTable table;
+	@VisibleForTesting
+	final IndexTagCalc<T> hasher;
 	private final AtomicLong count;
 	/**
 	 * Only stored for serialization since the bucket locker is transient.
@@ -213,8 +215,6 @@ public final class CuckooFilter<T> implements Serializable {
 		 */
 		public Builder(Funnel<? super T> funnel, long maxKeys) {
 			checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1, increase maxKeys", maxKeys);
-			checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
-			checkArgument(fpp < .25, "fpp (%s) must be < 0.25, decrease fpp", fpp);
 			checkNotNull(funnel);
 			this.funnel = funnel;
 			this.maxKeys = maxKeys;
@@ -268,7 +268,9 @@ public final class CuckooFilter<T> implements Serializable {
 		 *            false positive rate ( value is (expected %)/100 ) from 0-1
 		 *            exclusive.
 		 */
-		public Builder<T> falsePositiveRate(double fpp) {
+		public Builder<T> withFalsePositiveRate(double fpp) {
+			checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
+			checkArgument(fpp < .25, "fpp (%s) must be < 0.25, decrease fpp", fpp);
 			this.fpp = fpp;
 			return this;
 		}
@@ -287,7 +289,7 @@ public final class CuckooFilter<T> implements Serializable {
 		 * @param hashAlgorithm
 		 * @return
 		 */
-		public Builder<T> hashAlgorithm(Algorithm hashAlgorithm) {
+		public Builder<T> withHashAlgorithm(Algorithm hashAlgorithm) {
 			checkNotNull(hashAlgorithm,
 					"hashAlgorithm cannot be null. To use default, build without calling this method.");
 			this.hashAlgorithm = hashAlgorithm;
@@ -307,7 +309,7 @@ public final class CuckooFilter<T> implements Serializable {
 		 *            expected number of threads accessing the filter
 		 *            concurrently.
 		 */
-		public Builder<T> expectedConcurrency(int expectedConcurrency) {
+		public Builder<T> withExpectedConcurrency(int expectedConcurrency) {
 			checkArgument(expectedConcurrency > 0, "expectedConcurrency (%s) must be > 0.", expectedConcurrency);
 			checkArgument((expectedConcurrency & (expectedConcurrency - 1)) == 0,
 					"expectedConcurrency (%s) must be a power of two.", expectedConcurrency);
@@ -334,45 +336,45 @@ public final class CuckooFilter<T> implements Serializable {
 		}
 	}
 
-	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys) {
-		return create(funnel, maxKeys, DEFAULT_FP, null);
-	}
+//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys) {
+//		return create(funnel, maxKeys, DEFAULT_FP, null);
+//	}
+//
+//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, double fpp) {
+//		return create(funnel, maxKeys, fpp, null);
+//	}
+//
+//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, Algorithm hashAlgorithm) {
+//		checkNotNull(hashAlgorithm);
+//		return create(funnel, maxKeys, DEFAULT_FP, hashAlgorithm);
+//	}
 
-	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, double fpp) {
-		return create(funnel, maxKeys, fpp, null);
-	}
-
-	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, Algorithm hashAlgorithm) {
-		checkNotNull(hashAlgorithm);
-		return create(funnel, maxKeys, DEFAULT_FP, hashAlgorithm);
-	}
-
-	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, long maxKeys, double fpp,
-			@Nullable Algorithm hashAlgorithm) {
-		checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1, increase maxKeys", maxKeys);
-		checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
-		checkArgument(fpp < .25, "fpp (%s) must be < 0.25, decrease fpp", fpp);
-		checkNotNull(funnel);
-		int tagBits = Utils.getBitsPerItemForFpRate(fpp, LOAD_FACTOR);
-		long numBuckets = Utils.getBucketsNeeded(maxKeys, LOAD_FACTOR, BUCKET_SIZE);
-		IndexTagCalc<T> hasher;
-		if (hashAlgorithm == null) {
-			hasher = IndexTagCalc.create(funnel, numBuckets, tagBits);
-		} else
-			hasher = IndexTagCalc.create(hashAlgorithm, funnel, numBuckets, tagBits);
-		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets);
-		return new CuckooFilter<>(hasher, filtertbl, new AtomicLong(0), false, null, DEFAULT_CONCURRENCY);
-
-	}
+//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, long maxKeys, double fpp,
+//			@Nullable Algorithm hashAlgorithm) {
+//		checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1, increase maxKeys", maxKeys);
+//		checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
+//		checkArgument(fpp < .25, "fpp (%s) must be < 0.25, decrease fpp", fpp);
+//		checkNotNull(funnel);
+//		int tagBits = Utils.getBitsPerItemForFpRate(fpp, LOAD_FACTOR);
+//		long numBuckets = Utils.getBucketsNeeded(maxKeys, LOAD_FACTOR, BUCKET_SIZE);
+//		IndexTagCalc<T> hasher;
+//		if (hashAlgorithm == null) {
+//			hasher = IndexTagCalc.create(funnel, numBuckets, tagBits);
+//		} else
+//			hasher = IndexTagCalc.create(hashAlgorithm, funnel, numBuckets, tagBits);
+//		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets);
+//		return new CuckooFilter<>(hasher, filtertbl, new AtomicLong(0), false, null, DEFAULT_CONCURRENCY);
+//
+//	}
 
 	/**
 	 * Gets the current number of items in the Cuckoo filter. Can be higher than
 	 * the max number of keys the filter was created to store if it is running
-	 * over expected maximum fill capacity. If you need to know that absolute
+	 * over expected maximum fill capacity. If you need to know the absolute
 	 * maximum number of items this filter can contain, call
-	 * {@code #getActualCapacity()}. If you jusr want to check how full the
-	 * filter is, it's better to use {@code #getLoadFactor()} which is bounded
-	 * at 1.0
+	 * {@code #getActualCapacity()}. If you just want to check how full the
+	 * filter is, it's better to use {@code #getLoadFactor()} than this, which
+	 * is bounded at 1.0
 	 * 
 	 * @return number of items in filter
 	 */
@@ -397,11 +399,12 @@ public final class CuckooFilter<T> implements Serializable {
 	/**
 	 * Gets the absolute maximum number of items the filter can theoretically
 	 * hold. <i>This is NOT the maximum you can expect it to reliably hold.</i>
-	 * This should only be used if you understand the source. The restrictions
-	 * on backing array size and compensation for the expected filter occupancy
-	 * on failure will almost always make the filter larger than requested on
-	 * creation. This method returns how big the filter actually is (in items)
-	 * <i>DO NOT EXPECT IT TO BE ABLE TO HOLD THIS MANY </i>
+	 * This should only be used if you understand the source. Internal
+	 * restrictions on backing array size and compensation for the expected
+	 * filter occupancy on first insert failure nearly always make the filter
+	 * larger than requested on creation. This method returns how big the filter
+	 * actually is (in items) <i>DO NOT EXPECT IT TO BE ABLE TO HOLD THIS MANY
+	 * </i>
 	 * 
 	 * @return number of keys filter can theoretically hold at 100% fill
 	 */

@@ -31,35 +31,67 @@ import com.google.common.testing.SerializableTester;
 public class TestCuckooFilter {
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidArgs() {
-		CuckooFilter.create(Funnels.integerFunnel(), 2000000, 1);
+	public void testInvalidArgsTooHighFp() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000)
+				.withFalsePositiveRate(1).build();
 	}
 
 	//hash function not long enough
 	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidArgs2() {
-		CuckooFilter.create(Funnels.integerFunnel(), Integer.MAX_VALUE, 0.01, Algorithm.Murmur3_32);
+	public void testInvalidArgsShortHashFunction() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), Integer.MAX_VALUE)
+		.withFalsePositiveRate(0.01)
+		.withHashAlgorithm(Algorithm.Murmur3_32).build();
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidArgs3() {
-		CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0);
+	public void testInvalidArgsZeroFp() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000)
+		.withFalsePositiveRate(0.0).build();
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidArgs4() {
-		CuckooFilter.create(Funnels.integerFunnel(), -2000000, 0.01);
+	public void testInvalidArgsNegItems() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), -2000000).build();
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidArgs5() {
-		CuckooFilter.create(Funnels.integerFunnel(), 2000000, -0.01);
+	public void testInvalidArgsNegFp() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000)
+		.withFalsePositiveRate(-0.02).build();
 	}
-
+	@Test(expected = IllegalArgumentException.class)
+	public void testInvalidArgsZeroConcurrency() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withExpectedConcurrency(0).build();
+	}
+	@Test(expected = IllegalArgumentException.class)
+	//not multiple of 2 concurrency
+	public void testInvalidArgsNotMult2Concurrency() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withExpectedConcurrency(10).build();
+	}
+	@Test
+	//should just work
+	public void testConcurrencyWorks() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withExpectedConcurrency(16).build();
+	}
+	@Test
+	public void testCreateDifferentHashLengths() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withHashAlgorithm(Algorithm.Murmur3_32).build();
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withHashAlgorithm(Algorithm.sipHash24).build();
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withHashAlgorithm(Algorithm.Murmur3_128).build();
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withHashAlgorithm(Algorithm.sha256).build();
+	}
+	
+	
+	@Test
+	//should just work
+	public void testNullHash() {
+		new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).build();
+	}
 
 	@Test
 	public void sanityFalseNegative() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 130000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		// add them to filter
 		for (int i = 0; i < 100000; i++) {
 			// will return false if filter is full...should NOT be
@@ -75,14 +107,44 @@ public class TestCuckooFilter {
 		assertTrue(falseNegatives + " false negatives detected", falseNegatives == 0);
 
 	}
+	@Test
+	public void sanityApproimateCount() {
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 130000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
+		//fill buckets with duplicates, count along the way
+		for(int i=0;i<8;i++)
+		{
+			assertTrue(filter.put(42));
+			assertTrue(filter.approximateCount(42)==i+1);
+		}
+		//should fill victim
+		assertTrue(filter.put(42));
+		assertTrue(filter.approximateCount(42)==9);
+		//should fail
+		assertFalse(filter.put(42));
+		//count should be the same
+		assertTrue(filter.approximateCount(42)==9);
+		//should delete victim and another pos
+		assertTrue(filter.delete(42)&&filter.delete(42));
+		//should be 7 copies now
+		assertTrue(filter.approximateCount(42)==7);
+		//loop delete rest
+		for(int i=7;i>0;i--)
+		{
+			assertTrue(filter.delete(42));
+			assertTrue(filter.approximateCount(42)==i-1);
+		}
+		//should be empty
+		assertFalse(filter.mightContain(42));
+	}
+	
+	
 
 	@Test
 	public void sanityOverFillFilter() {
 		// make test set bigger than any size filter we're running
 		for (int i = 1; i < 10; i++) {
 			int filterKeys = 100000 * i;
-			CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), filterKeys, 0.01,
-					Algorithm.Murmur3_32);
+			CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), filterKeys).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 
 			// make a list of test values(all unique)
 			// makes sure that filter can handle a 0.8 load factor before
@@ -118,7 +180,7 @@ public class TestCuckooFilter {
 
 	@Test
 	public void sanityOverFillBucketMoreThan2B() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 100000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 100000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		int maxTries = 30;
 		int failedAt = maxTries;
 		for (int i = 0; i < maxTries; i++) {
@@ -133,7 +195,7 @@ public class TestCuckooFilter {
 
 	@Test
 	public void sanityFailedDelete() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 130000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 
 		// make a list of test values(all unique)
 		int maxInsertedVal = 100000;
@@ -154,7 +216,7 @@ public class TestCuckooFilter {
 
 	@Test
 	public void sanityFalseDeleteRate() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 130000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		int maxInsertedVal = 100000;
 		for (int i = 0; i < maxInsertedVal; i++) {
 			// will return false if filter is full...should NOT be
@@ -179,7 +241,7 @@ public class TestCuckooFilter {
 
 	@Test
 	public void sanityFalsePositiveRate() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 130000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		int maxInsertedVal = 100000;
 		// make a list of test values(all unique)
 		for (int i = 0; i < maxInsertedVal; i++) {
@@ -201,7 +263,7 @@ public class TestCuckooFilter {
 
 	@Test
 	public void sanityTestVictimCache() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 130000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 
 		for (int i = 0; i < 9; i++) {
 			assertTrue(filter.put(42));
@@ -221,8 +283,7 @@ public class TestCuckooFilter {
 
 	@Test
 	public void testVictimCacheTagComparison() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 130000, 0.01, Algorithm.Murmur3_32);
-
+		CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 130000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		filter.hasVictim = true;
 		filter.victim = new Victim(1,2, 42);
 		BucketAndTag test1 = new BucketAndTag(filter.victim.getI1(), 42);
@@ -236,8 +297,7 @@ public class TestCuckooFilter {
 		// test with different filter sizes
 		for (int k = 1; k < 20; k++) {
 			int filterKeys = 20000 * k;
-			CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), filterKeys, 0.01,
-					Algorithm.Murmur3_32);
+			CuckooFilter<Integer> filter=new CuckooFilter.Builder<>(Funnels.integerFunnel(), filterKeys).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 			// repeatedly fill and drain filter
 			for (int j = 0; j < 3; j++) {
 				stressFillDrainCheck(filter);
@@ -293,8 +353,8 @@ public class TestCuckooFilter {
 
 	@Test
 	public void testEquals() {
-		CuckooFilter<Integer> partFull=CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
-		CuckooFilter<Integer> full=CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> partFull=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
+		CuckooFilter<Integer> full=new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		for(int i=0;i<1000000;i++)
 		{
 			assertTrue(partFull.put(i));
@@ -307,17 +367,17 @@ public class TestCuckooFilter {
 		new EqualsTester()
 				.addEqualityGroup(partFull)
 				.addEqualityGroup(full)
-				.addEqualityGroup(CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32))
-				.addEqualityGroup(CuckooFilter.create(Funnels.longFunnel(), 2000000, 0.01, Algorithm.Murmur3_32))
-				.addEqualityGroup(CuckooFilter.create(Funnels.integerFunnel(), 1000000, 0.01, Algorithm.Murmur3_32))
-				.addEqualityGroup(CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.03, Algorithm.Murmur3_32))
-				.addEqualityGroup(CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_128))
+				.addEqualityGroup(new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build())
+				.addEqualityGroup(new CuckooFilter.Builder<>(Funnels.longFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build())
+				.addEqualityGroup(new CuckooFilter.Builder<>(Funnels.integerFunnel(), 1000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build())
+				.addEqualityGroup(new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.03).withHashAlgorithm(Algorithm.Murmur3_32).build())
+				.addEqualityGroup(new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_128).build())
 				.testEquals();
 	}
 
 	@Test
 	public void testCopyEmpty() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		CuckooFilter<Integer> filterCopy = filter.copy();
 		assertTrue(filterCopy.equals(filter));
 		assertNotSame(filter, filterCopy);
@@ -326,7 +386,7 @@ public class TestCuckooFilter {
 	
 	@Test
 	public void testCopyPartFull() {
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		for(int i=0;i<1000000;i++)
 		{
 			assertTrue(filter.put(i));
@@ -340,7 +400,7 @@ public class TestCuckooFilter {
 	@Test
 	public void testCopyFull() {
 		//totally full will test victim cache as well
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		//fill until victim cache full
 		for(int i=0;;i++)
 		{
@@ -363,12 +423,12 @@ public class TestCuckooFilter {
 	@Test
 	public void testSerializeEmpty() {
 		SerializableTester.reserializeAndAssert(
-				CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32));
+				new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build());
 	}
 	
 	@Test
 	public void testSerializePartFull() {
-		CuckooFilter<Integer> filter= CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		for(int i=0;i<1000000;i++)
 		{
 			assertTrue(filter.put(i));
@@ -378,7 +438,7 @@ public class TestCuckooFilter {
 	
 	@Test
 	public void testSerializeFull() {
-		CuckooFilter<Integer> filter= CuckooFilter.create(Funnels.integerFunnel(), 2000000, 0.01, Algorithm.Murmur3_32);
+		CuckooFilter<Integer> filter = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).withFalsePositiveRate(0.01).withHashAlgorithm(Algorithm.Murmur3_32).build();
 		for(int i=0;;i++)
 		{
 			if(!filter.put(i))

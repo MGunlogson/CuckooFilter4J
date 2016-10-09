@@ -1,3 +1,4 @@
+
 /*
    Copyright 2016 Mark Gunlogson
 
@@ -23,7 +24,8 @@ public class BenchCuckooForProfiling {
 		for (int j = 0; j < 10000; j++) {
 
 			// create filters
-			CuckooFilter<Integer> cuckoo = CuckooFilter.create(Funnels.integerFunnel(), 100000, 0.03);
+			CuckooFilter<Integer> cuckoo = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 100000)
+					.withFalsePositiveRate(0.03).build();
 			// benchmark insert
 			for (int i = 0; i < 70000; i++) {
 				if (!cuckoo.put(i)) {

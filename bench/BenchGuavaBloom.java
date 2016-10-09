@@ -1,3 +1,4 @@
+
 /*
    Copyright 2016 Mark Gunlogson
 
@@ -24,45 +25,46 @@ public class BenchGuavaBloom {
 	public static void main(String[] args) throws Exception {
 		ArrayList<Long> cuckooTimes = new ArrayList<>();
 		ArrayList<Long> bloomTimes = new ArrayList<>();
-		final int filterKeys=1000000;
+		final int filterKeys = 1000000;
 		// repeat a bunch of times
 		for (int j = 0; j < 100; j++) {
 
 			// create filters
-			CuckooFilter<Integer> cuckoo = CuckooFilter.create(Funnels.integerFunnel(), filterKeys, 0.03);
+			CuckooFilter<Integer> cuckoo = new CuckooFilter.Builder<>(Funnels.integerFunnel(), filterKeys)
+					.withFalsePositiveRate(0.03).build();
 			BloomFilter<Integer> bloom = BloomFilter.create(Funnels.integerFunnel(), filterKeys, 0.03);
 
 			// =============CUCKOO=================
-//			// warmup inserts
-//			for (int i = 110000; i < 115000; i++) {
-//				if (!cuckoo.put(i)) {
-//					throw new Exception();
-//				}
-//			}
+			// // warmup inserts
+			// for (int i = 110000; i < 115000; i++) {
+			// if (!cuckoo.put(i)) {
+			// throw new Exception();
+			// }
+			// }
 
 			long cuckooStart = System.nanoTime();
 			// benchmark insert
-			for (int i = 0; i < filterKeys*.75; i++) {
+			for (int i = 0; i < filterKeys * .75; i++) {
 				if (!cuckoo.put(i)) {
 					throw new Exception();
 				}
 			}
 			// benchmark contains(with half true half false expected)
-			for (int i = 0 ; i < filterKeys; i++) {
+			for (int i = 0; i < filterKeys; i++) {
 				cuckoo.mightContain(i);
 			}
 			long cuckooEnd = System.nanoTime();
 
 			cuckooTimes.add(cuckooEnd - cuckooStart);
 			// ==============BLOOM==============
-//			// warmup inserts
-//			for (int i = 110000; i < 115000; i++) {
-//				bloom.put(i);
-//			}
+			// // warmup inserts
+			// for (int i = 110000; i < 115000; i++) {
+			// bloom.put(i);
+			// }
 
 			long bloomStart = System.nanoTime();
 			// benchmark insert
-			for (int i = 0; i < filterKeys*.75; i++) {
+			for (int i = 0; i < filterKeys * .75; i++) {
 				bloom.put(i);
 			}
 			// benchmark contains(with half true half false expected)

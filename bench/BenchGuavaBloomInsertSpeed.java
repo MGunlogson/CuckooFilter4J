@@ -1,3 +1,4 @@
+
 /*
    Copyright 2016 Mark Gunlogson
 
@@ -24,45 +25,45 @@ public class BenchGuavaBloomInsertSpeed {
 	public static void main(String[] args) throws Exception {
 		long cuckooTime;
 		long bloomTime;
-		int filterSize=100000000;
-			// create filters
-			CuckooFilter<Integer> cuckoo = CuckooFilter.create(Funnels.integerFunnel(), filterSize, 0.03);
-			BloomFilter<Integer> bloom = BloomFilter.create(Funnels.integerFunnel(), filterSize, 0.03);
+		int filterSize = 100000000;
+		// create filters
+		CuckooFilter<Integer> cuckoo = new CuckooFilter.Builder<>(Funnels.integerFunnel(), filterSize)
+				.withFalsePositiveRate(0.03).build();
+		BloomFilter<Integer> bloom = BloomFilter.create(Funnels.integerFunnel(), filterSize, 0.03);
 
-			// =============CUCKOO=================
-			// warmup inserts
-			for (int i = filterSize-(filterSize/10); i < filterSize; i++) {
-				if (!cuckoo.put(i)) {
-					throw new Exception();
-				}
+		// =============CUCKOO=================
+		// warmup inserts
+		for (int i = filterSize - (filterSize / 10); i < filterSize; i++) {
+			if (!cuckoo.put(i)) {
+				throw new Exception();
 			}
+		}
 
-			long cuckooStart = System.nanoTime();
-			// benchmark insert
-			for (int i = 0; i < filterSize*.75; i++) {
-				if (!cuckoo.put(i)) {
-					throw new Exception();
-				}
+		long cuckooStart = System.nanoTime();
+		// benchmark insert
+		for (int i = 0; i < filterSize * .75; i++) {
+			if (!cuckoo.put(i)) {
+				throw new Exception();
 			}
-			long cuckooEnd = System.nanoTime();
+		}
+		long cuckooEnd = System.nanoTime();
 
-			cuckooTime=cuckooEnd - cuckooStart;
-			// ==============BLOOM==============
-			// warmup inserts
-			for (int i = filterSize-(filterSize/10); i < filterSize; i++) {
-				bloom.put(i);
-			}
+		cuckooTime = cuckooEnd - cuckooStart;
+		// ==============BLOOM==============
+		// warmup inserts
+		for (int i = filterSize - (filterSize / 10); i < filterSize; i++) {
+			bloom.put(i);
+		}
 
-			long bloomStart = System.nanoTime();
-			// benchmark insert
-			for (int i = 0; i < filterSize*.75; i++) {
-				bloom.put(i);
-			}
-			long bloomEnd = System.nanoTime();
-			bloomTime=bloomEnd - bloomStart;
-			
+		long bloomStart = System.nanoTime();
+		// benchmark insert
+		for (int i = 0; i < filterSize * .75; i++) {
+			bloom.put(i);
+		}
+		long bloomEnd = System.nanoTime();
+		bloomTime = bloomEnd - bloomStart;
 
-		System.out.println("Average Inserts Per Second, Bloom: " +  (filterSize*.75)/(bloomTime /1000000000.0)  + "   Cuckoo: "
-				+  (filterSize*.75)/(cuckooTime / 1000000000.0));
+		System.out.println("Average Inserts Per Second, Bloom: " + (filterSize * .75) / (bloomTime / 1000000000.0)
+				+ "   Cuckoo: " + (filterSize * .75) / (cuckooTime / 1000000000.0));
 	}
 }

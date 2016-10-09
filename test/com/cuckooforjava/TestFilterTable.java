@@ -37,10 +37,10 @@ public class TestFilterTable {
 	public void testInvalidArgs2() {
 		FilterTable.create(5, 0);
 	}
-
+	//tag too short
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidArgs3() {
-		FilterTable.create(5, 100);
+		FilterTable.create(4, 100);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -203,11 +203,9 @@ public class TestFilterTable {
 	@Test
 	public void testEquals() {
 		new EqualsTester()
-				// we don't test arg2 because numbuckets is only used to create
-				// BitSet of estimated proper size.
 				.addEqualityGroup(FilterTable.create(12, 1000))
 				.addEqualityGroup(FilterTable.create(13, 1000))
-				.addEqualityGroup(FilterTable.create(12, 1000)).testEquals();
+				.addEqualityGroup(FilterTable.create(12, 2000)).testEquals();
 	}
 
 	@Test
