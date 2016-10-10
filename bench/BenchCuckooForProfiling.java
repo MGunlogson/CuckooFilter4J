@@ -15,7 +15,7 @@
    limitations under the License.
 */
 
-import com.github.mgunlogson.cuckoofilter4j.CuckooFilter;
+import com.github.mgunlogson.cuckoofilter4j.*;
 import com.google.common.hash.Funnels;
 
 public class BenchCuckooForProfiling {

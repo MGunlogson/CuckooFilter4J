@@ -15,7 +15,6 @@
 */
 
 import com.github.mgunlogson.cuckoofilter4j.CuckooFilter;
-import com.github.mgunlogson.cuckoofilter4j.Utils.Algorithm;
 import com.google.common.hash.Funnels;
 
 public class Example {

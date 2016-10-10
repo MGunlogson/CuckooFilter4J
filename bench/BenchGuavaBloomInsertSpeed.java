@@ -15,7 +15,6 @@
    limitations under the License.
 */
 
-import java.util.ArrayList;
 
 import com.github.mgunlogson.cuckoofilter4j.CuckooFilter;
 import com.google.common.hash.BloomFilter;
