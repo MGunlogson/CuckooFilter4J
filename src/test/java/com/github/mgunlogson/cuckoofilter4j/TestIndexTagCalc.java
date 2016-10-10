@@ -32,30 +32,30 @@ import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
 
- class TestIndexTagCalc {
+public class TestIndexTagCalc {
 
 	@Test(expected = IllegalArgumentException.class)
-	 void filterTooBig() {
+	public void filterTooBig() {
 		IndexTagCalc.create(Algorithm.Murmur3_32, Funnels.integerFunnel(), Long.MAX_VALUE, 1);
 	}
-	
+
 	@Test(expected = IllegalArgumentException.class)
-	 void filterTooBig2() {
+	public void filterTooBig2() {
 		IndexTagCalc.create(Algorithm.Murmur3_32, Funnels.integerFunnel(), 30000, Integer.MAX_VALUE);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	 void testInvalidArgs() {
+	public void testInvalidArgs() {
 		IndexTagCalc.create(Funnels.integerFunnel(), 0, 1);
 	}
+
 	@Test(expected = IllegalArgumentException.class)
-	 void testInvalidArgs2() {
-		IndexTagCalc.create( Funnels.integerFunnel(), 1, 0);
+	public void testInvalidArgs2() {
+		IndexTagCalc.create(Funnels.integerFunnel(), 1, 0);
 	}
 
-
 	@Test
-	 void knownZeroTags32() {
+	public void knownZeroTags32() {
 		// manual instantiation to force salts to be static
 		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.Murmur3_32);
@@ -78,10 +78,9 @@ import com.google.common.testing.SerializableTester;
 		}
 
 	}
-	
 
 	@Test
-	 void sanityTagIndexBitsUsed32() {
+	public void sanityTagIndexBitsUsed32() {
 		// manual instantiation to force salts to be static
 		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.Murmur3_32);
@@ -100,17 +99,17 @@ import com.google.common.testing.SerializableTester;
 		assertTrue(Long.bitCount(setBitsTag) == 4);
 		// check where the set bits are
 		long indexMask = 0b1111111;
-		long tagMask =   0b0001111;
+		long tagMask = 0b0001111;
 		assertTrue(indexMask == setBitsIndex);
 		assertTrue(tagMask == setBitsTag);
 	}
-	
+
 	@Test
-	 void sanityTagIndexBitsUsed64() {
+	public void sanityTagIndexBitsUsed64() {
 		// manual instantiation to force salts to be static
 		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.sipHash24);
-		IndexTagCalc<Integer> indexer = new IndexTagCalc<>(hasher,(long)Math.pow(2, 31) , 32);
+		IndexTagCalc<Integer> indexer = new IndexTagCalc<>(hasher, (long) Math.pow(2, 31), 32);
 		long setBitsIndex = 0;
 		long setBitsTag = 0;
 		// should be enough to set all bits being used...
@@ -124,18 +123,18 @@ import com.google.common.testing.SerializableTester;
 		assertTrue(Long.bitCount(setBitsIndex) == 31);
 		assertTrue(Long.bitCount(setBitsTag) == 32);
 		// check where the set bits are
-		long bitMask32 = -1L>>>32;//(mask for lower 32 bits set)
-		long bitMask31 = bitMask32>>>1;//(mask for lower 32 bits set)
+		long bitMask32 = -1L >>> 32;// (mask for lower 32 bits set)
+		long bitMask31 = bitMask32 >>> 1;// (mask for lower 32 bits set)
 		assertTrue(bitMask32 == setBitsTag);
 		assertTrue(bitMask31 == setBitsIndex);
 	}
-	
+
 	@Test
-	 void sanityTagIndexBitsUsed128() {
+	public void sanityTagIndexBitsUsed128() {
 		// manual instantiation to force salts to be static
 		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.sha256);
-		IndexTagCalc<Integer> indexer = new IndexTagCalc<>(hasher,(long)Math.pow(2, 62) , 64);
+		IndexTagCalc<Integer> indexer = new IndexTagCalc<>(hasher, (long) Math.pow(2, 62), 64);
 		long setBitsIndex = 0;
 		long setBitsTag = 0;
 		// should be enough to set all bits being used...
@@ -149,46 +148,45 @@ import com.google.common.testing.SerializableTester;
 		assertTrue(Long.bitCount(setBitsIndex) == 64);
 		assertTrue(Long.bitCount(setBitsTag) == 64);
 		// check where the set bits are
-		long bitMask = -1L;//(mask for all 64 bits set)
+		long bitMask = -1L;// (mask for all 64 bits set)
 		assertTrue(bitMask == setBitsIndex);
 		assertTrue(bitMask == setBitsTag);
 	}
-	
-	
+
 	@Test
-	 void sanityTagIndexNotSame() {
+	public void sanityTagIndexNotSame() {
 		// manual instantiation to force salts to be static
 		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.sha256);
-		IndexTagCalc<Integer> indexer = new IndexTagCalc<>(hasher, (long)Math.pow(2,62), 64);
+		IndexTagCalc<Integer> indexer = new IndexTagCalc<>(hasher, (long) Math.pow(2, 62), 64);
 		// should be enough to set all bits being used...
-		for (int i = 0; i < 1234567; i+=4) {
+		for (int i = 0; i < 1234567; i += 4) {
 			BucketAndTag bt = indexer.generate(i);
-			BucketAndTag bt2 = indexer.generate(i+1);
-			//we use two equalities to make collisions super-rare since we otherwise only have 32 bits of hash to compare
-			//we're checking for 2 collisions in 2 pairs of 32 bit hash. Should be as hard as getting a single 64 bit collision aka... never happen
-			assertTrue(bt.index != bt.tag || bt2.index != bt2.tag  );
+			BucketAndTag bt2 = indexer.generate(i + 1);
+			// we use two equalities to make collisions super-rare since we
+			// otherwise only have 32 bits of hash to compare
+			// we're checking for 2 collisions in 2 pairs of 32 bit hash. Should
+			// be as hard as getting a single 64 bit collision aka... never
+			// happen
+			assertTrue(bt.index != bt.tag || bt2.index != bt2.tag);
 		}
 	}
-	
-	
-	
 
 	@Test
-	 void testEquals() {
+	public void testEquals() {
 		new EqualsTester().addEqualityGroup(new IndexTagCalc<Integer>(getUnsaltedHasher(), 128, 4))
 				.addEqualityGroup(new IndexTagCalc<Integer>(getUnsaltedHasher(), 256, 4))
 				.addEqualityGroup(new IndexTagCalc<Integer>(getUnsaltedHasher(), 128, 6)).testEquals();
 	}
 
 	@Test
-	 void testEqualsSame() {
+	public void testEqualsSame() {
 		assertTrue(new IndexTagCalc<Integer>(getUnsaltedHasher(), 128, 4)
 				.equals(new IndexTagCalc<Integer>(getUnsaltedHasher(), 128, 4)));
 	}
 
 	@Test
-	 void testCopy() {
+	public void testCopy() {
 		IndexTagCalc<Integer> calc = IndexTagCalc.create(Funnels.integerFunnel(), 128, 4);
 		IndexTagCalc<Integer> calcCopy = calc.copy();
 		assertTrue(calcCopy.equals(calc));
@@ -196,26 +194,16 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void autoTestNulls() {
+	public void autoTestNulls() {
 		// chose 8 for int so it passes bucket and tag size checks
-		new ClassSanityTester().setDefault(SerializableSaltedHasher.class, getUnsaltedHasher()).setDefault(long.class, 8L).setDefault(int.class, 8)
-				.testNulls(IndexTagCalc.class);
+		new ClassSanityTester().setDefault(SerializableSaltedHasher.class, getUnsaltedHasher())
+				.setDefault(long.class, 8L).setDefault(int.class, 8).testNulls(IndexTagCalc.class);
 	}
 
 	@Test
-	 void brokenAltIndex32() {
+	public void brokenAltIndex32() {
 		Random rando = new Random();
-		IndexTagCalc<Integer> calc = IndexTagCalc.create( Funnels.integerFunnel(), 2048, 14);
-		for (int i = 0; i < 10000; i++) {
-			BucketAndTag pos = calc.generate(rando.nextInt());
-			long altIndex = calc.altIndex(pos.index, pos.tag);
-			assertTrue(pos.index == calc.altIndex(altIndex, pos.tag));
-		}
-	}
-	@Test
-	 void brokenAltIndex64() {
-		Random rando = new Random();
-		IndexTagCalc<Integer> calc = IndexTagCalc.create( Funnels.integerFunnel(), (long)Math.pow(2,32), 5);
+		IndexTagCalc<Integer> calc = IndexTagCalc.create(Funnels.integerFunnel(), 2048, 14);
 		for (int i = 0; i < 10000; i++) {
 			BucketAndTag pos = calc.generate(rando.nextInt());
 			long altIndex = calc.altIndex(pos.index, pos.tag);
@@ -224,7 +212,18 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testSerialize() {
+	public void brokenAltIndex64() {
+		Random rando = new Random();
+		IndexTagCalc<Integer> calc = IndexTagCalc.create(Funnels.integerFunnel(), (long) Math.pow(2, 32), 5);
+		for (int i = 0; i < 10000; i++) {
+			BucketAndTag pos = calc.generate(rando.nextInt());
+			long altIndex = calc.altIndex(pos.index, pos.tag);
+			assertTrue(pos.index == calc.altIndex(altIndex, pos.tag));
+		}
+	}
+
+	@Test
+	public void testSerialize() {
 		SerializableTester.reserializeAndAssert(new IndexTagCalc<Integer>(getUnsaltedHasher(), 128, 4));
 	}
 

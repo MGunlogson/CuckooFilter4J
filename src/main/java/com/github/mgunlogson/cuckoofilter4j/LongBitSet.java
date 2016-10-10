@@ -24,9 +24,8 @@ import java.util.Arrays;
 /**
  * BitSet of fixed length (numBits), backed by accessible ({@link #getBits})
  * long[], accessed with a long index. Use it only if you intend to store more
- * than 2.1B bits, otherwise you should use {@link FixedBitSet}.
+ * than 2.1B bits, otherwise you should use {@code FixedBitSet}.
  * 
- * @lucene.internal
  */
 final class LongBitSet implements Serializable {
 

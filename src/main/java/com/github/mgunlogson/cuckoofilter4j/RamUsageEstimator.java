@@ -41,7 +41,6 @@ import java.util.Map;
  * @see #shallowSizeOf(Object)
  * @see #shallowSizeOfInstance(Class)
  * 
- * @lucene.internal
  */
 final class RamUsageEstimator {
 

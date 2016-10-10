@@ -27,30 +27,31 @@ import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
 
- class TestFilterTable {
+public class TestFilterTable {
 
 	@Test(expected = IllegalArgumentException.class)
-	 void testInvalidArgs() {
+	public void testInvalidArgs() {
 		FilterTable.create(0, 100);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	 void testInvalidArgs2() {
+	public void testInvalidArgs2() {
 		FilterTable.create(5, 0);
 	}
-	//tag too short
+
+	// tag too short
 	@Test(expected = IllegalArgumentException.class)
-	 void testInvalidArgs3() {
+	public void testInvalidArgs3() {
 		FilterTable.create(4, 100);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	 void testTagTooBig() {
+	public void testTagTooBig() {
 		FilterTable.create(60, 100);
 	}
 
 	@Test
-	 void testSimpleReadWriteTag() {
+	public void testSimpleReadWriteTag() {
 		FilterTable table = FilterTable.create(12, 1000);
 		int testTag = 0b00000000000000000000000000011111;
 		for (int posInBucket = 0; posInBucket < 4; posInBucket++) {
@@ -64,7 +65,7 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testSimpleDeleteTag() {
+	public void testSimpleDeleteTag() {
 		FilterTable table = FilterTable.create(12, 1000);
 		int testTag = 0b00000000000000000000000000011111;
 		// fill all bucket positions
@@ -93,7 +94,7 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testSimpleFindTag() {
+	public void testSimpleFindTag() {
 		FilterTable table = FilterTable.create(12, 1000);
 		int testTag = 0b00000000000000000000000000011111;
 		table.writeTagNoClear(1, 2, testTag);
@@ -105,7 +106,7 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testOverFillBucket() {
+	public void testOverFillBucket() {
 		int testTag = 0b00000000000000000000000000011111;
 		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
@@ -117,7 +118,7 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testTagSwap() {
+	public void testTagSwap() {
 		int testTag = 0b00000000000000000000000000011111;
 		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
@@ -134,7 +135,7 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testTagSwap2() {
+	public void testTagSwap2() {
 		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
 		assertTrue(table.insertToBucket(5, 1L));
@@ -161,7 +162,7 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testBitBleedWithinBucket() {
+	public void testBitBleedWithinBucket() {
 		int canaryTag = 0b11111111111111111111111111111111;
 		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
@@ -170,10 +171,9 @@ import com.google.common.testing.SerializableTester;
 		assertTrue(table.readTag(5, 1) == 0);
 		assertTrue(table.readTag(5, 3) == 0);
 	}
-	
-	
+
 	@Test
-	 void testDeleteCorrectBits() {
+	public void testDeleteCorrectBits() {
 		int canaryTag = 0b111111111111;
 		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
@@ -190,7 +190,7 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testBitBleedBetweenBuckets() {
+	public void testBitBleedBetweenBuckets() {
 		int canaryTag = 0b11111111111111111111111111111111;
 		FilterTable table = FilterTable.create(12, 1000);
 		// buckets can hold 4 tags
@@ -202,15 +202,13 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testEquals() {
-		new EqualsTester()
-				.addEqualityGroup(FilterTable.create(12, 1000))
-				.addEqualityGroup(FilterTable.create(13, 1000))
+	public void testEquals() {
+		new EqualsTester().addEqualityGroup(FilterTable.create(12, 1000)).addEqualityGroup(FilterTable.create(13, 1000))
 				.addEqualityGroup(FilterTable.create(12, 2000)).testEquals();
 	}
 
 	@Test
-	 void testCopy() {
+	public void testCopy() {
 		FilterTable table = FilterTable.create(12, 1000);
 		FilterTable tableCopy = table.copy();
 		assertTrue(tableCopy.equals(table));
@@ -218,13 +216,13 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void autoTestNulls() {
+	public void autoTestNulls() {
 		// chose 15 for int so it passes checks
 		new ClassSanityTester().setDefault(int.class, 15).testNulls(FilterTable.class);
 	}
 
 	@Test
-	 void testSerialize() {
+	public void testSerialize() {
 		SerializableTester.reserializeAndAssert(FilterTable.create(12, 1000));
 	}
 

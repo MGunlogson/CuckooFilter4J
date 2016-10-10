@@ -30,20 +30,20 @@ import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
 
- class TestSerializableSaltedHasher {
+public class TestSerializableSaltedHasher {
 
 	@Test(expected = NullPointerException.class)
-	 void testConsturctorNullArgs() {
+	public void testConsturctorNullArgs() {
 		SerializableSaltedHasher.create(null, null);
 	}
 
 	@Test(expected = NullPointerException.class)
-	 void testConsturctorNullArgs2() {
+	public void testConsturctorNullArgs2() {
 		SerializableSaltedHasher.create(null, Funnels.integerFunnel());
 	}
 
 	@Test
-	 void testSeeds() {
+	public void testSeeds() {
 		// test a seeded hash alg
 		SerializableSaltedHasher<Integer> hasher1 = new SerializableSaltedHasher<>(1, 0, Funnels.integerFunnel(),
 				Algorithm.Murmur3_32);
@@ -77,15 +77,15 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void testAutoAlgorithm()
-	{
-		SerializableSaltedHasher<Integer> hasher=SerializableSaltedHasher.create(100, Funnels.integerFunnel());
-		assertTrue(hasher.codeBitSize()==128);
+	public void testAutoAlgorithm() {
+		SerializableSaltedHasher<Integer> hasher = SerializableSaltedHasher.create(100, Funnels.integerFunnel());
+		assertTrue(hasher.codeBitSize() == 128);
 		hasher = SerializableSaltedHasher.create(30, Funnels.integerFunnel());
-		assertTrue(hasher.codeBitSize()<128);
+		assertTrue(hasher.codeBitSize() < 128);
 	}
+
 	@Test
-	 void testEquals() {
+	public void testEquals() {
 		new EqualsTester()
 				.addEqualityGroup(
 						new SerializableSaltedHasher<byte[]>(0, 0, Funnels.byteArrayFunnel(), Algorithm.Murmur3_32))
@@ -95,19 +95,19 @@ import com.google.common.testing.SerializableTester;
 						new SerializableSaltedHasher<byte[]>(0, 1, Funnels.byteArrayFunnel(), Algorithm.Murmur3_32))
 				.addEqualityGroup(
 						new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32))
-				.addEqualityGroup(new SerializableSaltedHasher<byte[]>(0, 0, Funnels.byteArrayFunnel(), Algorithm.sha256))
+				.addEqualityGroup(
+						new SerializableSaltedHasher<byte[]>(0, 0, Funnels.byteArrayFunnel(), Algorithm.sha256))
 				.testEquals();
 	}
 
 	@Test
-	 void testEqualsSame() {
+	public void testEqualsSame() {
 		assertTrue(new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32)
 				.equals(new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32)));
 	}
 
-
 	@Test
-	 void testCopy() {
+	public void testCopy() {
 		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.Murmur3_32);
 		SerializableSaltedHasher<Integer> hasherCopy = hasher.copy();
@@ -116,12 +116,12 @@ import com.google.common.testing.SerializableTester;
 	}
 
 	@Test
-	 void autoTestNulls() {
+	public void autoTestNulls() {
 		new ClassSanityTester().testNulls(SerializableSaltedHasher.class);
 	}
 
 	@Test
-	 void testSerialize() {
+	public void testSerialize() {
 		SerializableTester.reserializeAndAssert(
 				new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32));
 	}
