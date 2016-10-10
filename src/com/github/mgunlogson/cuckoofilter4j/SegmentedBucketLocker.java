@@ -60,6 +60,9 @@ public class SegmentedBucketLocker {
 	}
 /**
  * Locks segments corresponding to bucket indexes in specific order to prevent deadlocks
+ * @param i1 bucket index
+ * @param i2 bucket index 2
+ * 
  */
 	public void lockBucketsWrite(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);
@@ -79,6 +82,10 @@ public class SegmentedBucketLocker {
 	}
 	/**
 	 * Locks segments corresponding to bucket indexes in specific order to prevent deadlocks
+	 * 
+	 *   @param i1 bucket index
+	 *   @param i2 bucket index 2
+	 * 
 	 */
 	public void lockBucketsRead(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);
@@ -99,6 +106,10 @@ public class SegmentedBucketLocker {
 
 	/**
 	 * Unlocks segments corresponding to bucket indexes in specific order to prevent deadlocks
+	 * 
+	 *  @param i1 bucket index
+	 *  @param i2 bucket index 2
+	 * 
 	 */
 	public void unlockBucketsWrite(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);
@@ -113,6 +124,9 @@ public class SegmentedBucketLocker {
 	}
 	/**
 	 * Unlocks segments corresponding to bucket indexes in specific order to prevent deadlocks
+	 *  @param i1 bucket index
+	 *  @param i2 bucket index 2
+	 * 
 	 */
 	public void unlockBucketsRead(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);

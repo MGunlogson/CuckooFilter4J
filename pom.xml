@@ -5,17 +5,17 @@
 	<artifactId>cuckoofilter4j</artifactId>
 	<version>1.0.0</version>
 	<properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
- 	 </properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
 	<distributionManagement>
 		<snapshotRepository>
 			<id>ossrh</id>
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
 		</snapshotRepository>
-		  <repository>
-		    <id>ossrh</id>
-		    <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-		  </repository>
+		<repository>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
 	</distributionManagement>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
@@ -60,8 +60,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.5.1</version>
 				<configuration>
-           			<source>1.8</source>
-         			<target>1.8</target>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -81,6 +81,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>2.9.1</version>
+				<configuration>
+					<!-- Ignore missing docs for Apache Lucene borrowed classes -->
+					<excludePackageNames>
+						org.apache.lucene.*
+					</excludePackageNames>
+				</configuration>
 				<executions>
 					<execution>
 						<id>attach-javadocs</id>
