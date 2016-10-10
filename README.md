@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/MGunlogson/CuckooFilter4J.svg?branch=master)](https://travis-ci.org/MGunlogson/CuckooFilter4J)
 [![Coverage Status](https://coveralls.io/repos/github/MGunlogson/CuckooFilter4J/badge.svg?branch=master)](https://coveralls.io/github/MGunlogson/CuckooFilter4J?branch=master)
 
-<strong>Download At Maven Central</strong>
+
 
 
 #Cuckoo For Java - A fast multithreaded Java Cuckoo Filter#
@@ -11,6 +11,9 @@ This library allows you to build Cuckoo filters using an interface similar to Go
 * Unlike Guava's Bloom filters, this library is also thread-safe and faster with multiple threads like Java's ConcurrentHashMap. 
 * Cuckoo For Java is Apache licensed and unit tested.
 
+
+Download At Maven Central
+---------------
 
 About Cuckoo Filters
 -----------------
