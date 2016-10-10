@@ -29,6 +29,15 @@
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
 						<version>0.7.6.201602180812</version>
+						<configuration>
+							<excludes>
+							<!-- These files are from Apache Lucene project -->
+								<exclude>RamUsageEstimator.class</exclude>
+								<exclude>Constants.class</exclude>
+								<exclude>ArrayUtil.class</exclude>
+								<exclude>LongBitSet.class</exclude>
+							</excludes>
+						</configuration>
 						<executions>
 							<execution>
 								<id>prepare-agent</id>
