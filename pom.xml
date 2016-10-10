@@ -30,7 +30,7 @@
 						<artifactId>maven-surefire-plugin</artifactId>
 						<version>2.19.1</version>
 						<configuration>
-						<!-- Custom config for Travis CI...needs more memory than defaults -->
+							<!-- Custom config for Travis CI...needs more memory than defaults -->
 							<forkCount>3</forkCount>
 							<reuseForks>true</reuseForks>
 							<argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
