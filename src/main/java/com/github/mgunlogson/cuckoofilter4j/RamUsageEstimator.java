@@ -15,9 +15,9 @@
  * limitations under the License.
  * 
  * Copied from Apache Harmony and Lucene (6.2.0) projects with modifications
- *  * originally package org.apache.lucene.util;
  */
 package com.github.mgunlogson.cuckoofilter4j;
+
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -135,7 +135,7 @@ final class RamUsageEstimator {
   /**
    * Sizes of primitive classes.
    */
-  static final Map<Class<?>,Integer> primitiveSizes = new IdentityHashMap<>();
+  private static final Map<Class<?>,Integer> primitiveSizes = new IdentityHashMap<>();
   static {
     primitiveSizes.put(boolean.class, 1);
     primitiveSizes.put(byte.class, 1);
@@ -274,7 +274,7 @@ final class RamUsageEstimator {
   }
   
   /** Returns the size in bytes of the int[] object. */
-   static long sizeOf(int[] arr) {
+  static long sizeOf(int[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) Integer.BYTES * arr.length);
   }
   

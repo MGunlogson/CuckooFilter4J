@@ -1,136 +1,54 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.github.mgunlogson</groupId>
-	<artifactId>cuckoofilter4j</artifactId>
-	<version>1.0.0</version>
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
-	<distributionManagement>
-		<snapshotRepository>
-			<id>ossrh</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</snapshotRepository>
-		<repository>
-			<id>ossrh</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-		</repository>
-	</distributionManagement>
-	<build>
-		<sourceDirectory>src</sourceDirectory>
-		<plugins>
-			<plugin>
-				<groupId>org.sonatype.plugins</groupId>
-				<artifactId>nexus-staging-maven-plugin</artifactId>
-				<version>1.6.7</version>
-				<extensions>true</extensions>
-				<configuration>
-					<serverId>ossrh</serverId>
-					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
-					<autoReleaseAfterClose>true</autoReleaseAfterClose>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-release-plugin</artifactId>
-				<version>2.5.3</version>
-				<configuration>
-					<autoVersionSubmodules>true</autoVersionSubmodules>
-					<useReleaseProfile>false</useReleaseProfile>
-					<releaseProfiles>release</releaseProfiles>
-					<goals>deploy</goals>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-				<version>1.5</version>
-				<executions>
-					<execution>
-						<id>sign-artifacts</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>sign</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.5.1</version>
-				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>2.2.1</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar-no-fork</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
-				<configuration>
-					<!-- Ignore missing docs for Apache Lucene borrowed classes -->
-					<excludePackageNames>
-						org.apache.lucene.*
-					</excludePackageNames>
-				</configuration>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
-	<dependencies>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>19.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava-testlib</artifactId>
-			<version>19.0</version>
-		</dependency>
-		<dependency>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.mgunlogson</groupId>
+  <artifactId>cuckoofilter4j</artifactId>
+  <version>1.0.0</version>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.5.1</version>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <dependencies>
+  	<dependency>
+  		<groupId>com.google.guava</groupId>
+  		<artifactId>guava</artifactId>
+  		<version>19.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>com.google.guava</groupId>
+  		<artifactId>guava-testlib</artifactId>
+  		<version>19.0</version>
+  	</dependency>
+  			<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.8</version>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
-	<licenses>
-		<license>
-			<name>Apache License, Version 2.0</name>
-			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-			<distribution>repo</distribution>
-		</license>
-	</licenses>
+  </dependencies>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 	<name>${project.groupId}:${project.artifactId}</name>
-	<url>https://github.com/MGunlogson/CuckooFilter4J</url>
-	<description>A high performance thread-safe Java implementation of a Cuckoo filter. Uses similar conventions Guava's Bloom filters.</description>
-	<issueManagement>
-		<url>https://github.com/MGunlogson/CuckooFilter4J/issues</url>
-		<system>GitHub Issue</system>
-	</issueManagement>
-	<developers>
+  <url>https://github.com/MGunlogson/CuckooFilter4J</url>
+  <description>A high performance thread-safe Java implementation of a Cuckoo filter. Uses similar conventions Guava's Bloom filters.</description>
+  <issueManagement>
+  	<url>https://github.com/MGunlogson/CuckooFilter4J/issues</url>
+  	<system>GitHub Issue</system>
+  </issueManagement>
+  <developers>
 		<developer>
 			<email>mark@gunlogson.com</email>
 			<name>Mark Gunlogson</name>
@@ -138,10 +56,10 @@
 			<id>MGunlogson</id>
 		</developer>
 	</developers>
-
-	<scm>
-		<url>https://github.com/MGunlogson/CuckooFilter4J</url>
-		<connection>scm:git:git://github.com/MGunlogson/CuckooFilter4J.git</connection>
-		<developerConnection>scm:git:git@github.com:MGunlogson/CuckooFilter4J.git</developerConnection>
-	</scm>
+  
+  <scm>
+  	<url>https://github.com/MGunlogson/CuckooFilter4J</url>
+  	<connection>scm:git:git://github.com/MGunlogson/CuckooFilter4J.git</connection>
+  	<developerConnection>scm:git:git@github.com:MGunlogson/CuckooFilter4J.git</developerConnection>
+  </scm>
 </project>

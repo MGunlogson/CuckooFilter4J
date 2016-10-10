@@ -2,9 +2,9 @@ package com.github.mgunlogson.cuckoofilter4j;
 
 import org.junit.Test;
 
-public class TestCuckooFilterConcurrent {
+ class TestCuckooFilterConcurrent {
 	@Test
-	public void putMultiThread()
+	 void putMultiThread()
 	{
 		//starts some threads
 		//put a bunch of stuff into filter using all threads
@@ -15,7 +15,7 @@ public class TestCuckooFilterConcurrent {
 		
 	}
 	@Test
-	public void mightContainMultiThread()
+	 void mightContainMultiThread()
 	{
 		//put a bunch of stuff in single-threaded
 		
@@ -24,7 +24,7 @@ public class TestCuckooFilterConcurrent {
 	}
 	
 	@Test
-	public void deleteMultiThread()
+	 void deleteMultiThread()
 	{
 		//put a bunch of stuff in single-threaded
 		
@@ -37,7 +37,7 @@ public class TestCuckooFilterConcurrent {
 	
 	//over-fill filter(mostly test victim locking)
 	@Test
-	public void overFillMultiThread()
+	 void overFillMultiThread()
 	{
 		//put a bunch of stuff in multi-threaded until filter full in all threads
 		

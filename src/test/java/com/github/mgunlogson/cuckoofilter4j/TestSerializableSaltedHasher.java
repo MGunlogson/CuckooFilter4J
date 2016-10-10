@@ -30,20 +30,20 @@ import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.SerializableTester;
 
-public class TestSerializableSaltedHasher {
+ class TestSerializableSaltedHasher {
 
 	@Test(expected = NullPointerException.class)
-	public void testConsturctorNullArgs() {
+	 void testConsturctorNullArgs() {
 		SerializableSaltedHasher.create(null, null);
 	}
 
 	@Test(expected = NullPointerException.class)
-	public void testConsturctorNullArgs2() {
+	 void testConsturctorNullArgs2() {
 		SerializableSaltedHasher.create(null, Funnels.integerFunnel());
 	}
 
 	@Test
-	public void testSeeds() {
+	 void testSeeds() {
 		// test a seeded hash alg
 		SerializableSaltedHasher<Integer> hasher1 = new SerializableSaltedHasher<>(1, 0, Funnels.integerFunnel(),
 				Algorithm.Murmur3_32);
@@ -77,7 +77,7 @@ public class TestSerializableSaltedHasher {
 	}
 
 	@Test
-	public void testAutoAlgorithm()
+	 void testAutoAlgorithm()
 	{
 		SerializableSaltedHasher<Integer> hasher=SerializableSaltedHasher.create(100, Funnels.integerFunnel());
 		assertTrue(hasher.codeBitSize()==128);
@@ -85,7 +85,7 @@ public class TestSerializableSaltedHasher {
 		assertTrue(hasher.codeBitSize()<128);
 	}
 	@Test
-	public void testEquals() {
+	 void testEquals() {
 		new EqualsTester()
 				.addEqualityGroup(
 						new SerializableSaltedHasher<byte[]>(0, 0, Funnels.byteArrayFunnel(), Algorithm.Murmur3_32))
@@ -100,14 +100,14 @@ public class TestSerializableSaltedHasher {
 	}
 
 	@Test
-	public void testEqualsSame() {
+	 void testEqualsSame() {
 		assertTrue(new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32)
 				.equals(new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32)));
 	}
 
 
 	@Test
-	public void testCopy() {
+	 void testCopy() {
 		SerializableSaltedHasher<Integer> hasher = new SerializableSaltedHasher<>(0, 0, Funnels.integerFunnel(),
 				Algorithm.Murmur3_32);
 		SerializableSaltedHasher<Integer> hasherCopy = hasher.copy();
@@ -116,12 +116,12 @@ public class TestSerializableSaltedHasher {
 	}
 
 	@Test
-	public void autoTestNulls() {
+	 void autoTestNulls() {
 		new ClassSanityTester().testNulls(SerializableSaltedHasher.class);
 	}
 
 	@Test
-	public void testSerialize() {
+	 void testSerialize() {
 		SerializableTester.reserializeAndAssert(
 				new SerializableSaltedHasher<Integer>(0, 0, Funnels.integerFunnel(), Algorithm.Murmur3_32));
 	}

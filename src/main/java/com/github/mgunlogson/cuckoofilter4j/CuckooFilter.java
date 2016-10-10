@@ -336,36 +336,6 @@ public final class CuckooFilter<T> implements Serializable {
 		}
 	}
 
-//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys) {
-//		return create(funnel, maxKeys, DEFAULT_FP, null);
-//	}
-//
-//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, double fpp) {
-//		return create(funnel, maxKeys, fpp, null);
-//	}
-//
-//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, int maxKeys, Algorithm hashAlgorithm) {
-//		checkNotNull(hashAlgorithm);
-//		return create(funnel, maxKeys, DEFAULT_FP, hashAlgorithm);
-//	}
-
-//	public static <T> CuckooFilter<T> create(Funnel<? super T> funnel, long maxKeys, double fpp,
-//			@Nullable Algorithm hashAlgorithm) {
-//		checkArgument(maxKeys > 1, "maxKeys (%s) must be > 1, increase maxKeys", maxKeys);
-//		checkArgument(fpp > 0, "fpp (%s) must be > 0, increase fpp", fpp);
-//		checkArgument(fpp < .25, "fpp (%s) must be < 0.25, decrease fpp", fpp);
-//		checkNotNull(funnel);
-//		int tagBits = Utils.getBitsPerItemForFpRate(fpp, LOAD_FACTOR);
-//		long numBuckets = Utils.getBucketsNeeded(maxKeys, LOAD_FACTOR, BUCKET_SIZE);
-//		IndexTagCalc<T> hasher;
-//		if (hashAlgorithm == null) {
-//			hasher = IndexTagCalc.create(funnel, numBuckets, tagBits);
-//		} else
-//			hasher = IndexTagCalc.create(hashAlgorithm, funnel, numBuckets, tagBits);
-//		FilterTable filtertbl = FilterTable.create(tagBits, numBuckets);
-//		return new CuckooFilter<>(hasher, filtertbl, new AtomicLong(0), false, null, DEFAULT_CONCURRENCY);
-//
-//	}
 
 	/**
 	 * Gets the current number of items in the Cuckoo filter. Can be higher than

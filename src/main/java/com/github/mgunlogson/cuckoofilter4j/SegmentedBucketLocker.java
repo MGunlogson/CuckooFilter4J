@@ -32,12 +32,12 @@ import com.google.common.annotations.VisibleForTesting;
  * @author Mark Gunlogson
  *
  */
-public class SegmentedBucketLocker {
+final class SegmentedBucketLocker {
 	private final StampedLock[] lockAry;
 	// must be a power of 2 so no modulo bias
 	private final int concurrentSegments;
 
-	public SegmentedBucketLocker(int expectedConcurrency) {
+	SegmentedBucketLocker(int expectedConcurrency) {
 		checkArgument(expectedConcurrency > 0, "expectedConcurrency (%s) must be > 0.", expectedConcurrency);
 		checkArgument((expectedConcurrency & (expectedConcurrency - 1)) == 0,
 				"expectedConcurrency (%s) must be a power of two.", expectedConcurrency);
@@ -60,11 +60,8 @@ public class SegmentedBucketLocker {
 	}
 /**
  * Locks segments corresponding to bucket indexes in specific order to prevent deadlocks
- * @param i1 bucket index
- * @param i2 bucket index 2
- * 
  */
-	public void lockBucketsWrite(long i1, long i2) {
+	void lockBucketsWrite(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);
 		int bucket2LockIdx = getBucketLock(i2);
 		// always lock segments in same order to avoid deadlocks
@@ -82,12 +79,8 @@ public class SegmentedBucketLocker {
 	}
 	/**
 	 * Locks segments corresponding to bucket indexes in specific order to prevent deadlocks
-	 * 
-	 *   @param i1 bucket index
-	 *   @param i2 bucket index 2
-	 * 
 	 */
-	public void lockBucketsRead(long i1, long i2) {
+	void lockBucketsRead(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);
 		int bucket2LockIdx = getBucketLock(i2);
 		// always lock segments in same order to avoid deadlocks
@@ -106,12 +99,8 @@ public class SegmentedBucketLocker {
 
 	/**
 	 * Unlocks segments corresponding to bucket indexes in specific order to prevent deadlocks
-	 * 
-	 *  @param i1 bucket index
-	 *  @param i2 bucket index 2
-	 * 
 	 */
-	public void unlockBucketsWrite(long i1, long i2) {
+	void unlockBucketsWrite(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);
 		int bucket2LockIdx = getBucketLock(i2);
 		// always unlock segments in same order to avoid deadlocks
@@ -124,11 +113,8 @@ public class SegmentedBucketLocker {
 	}
 	/**
 	 * Unlocks segments corresponding to bucket indexes in specific order to prevent deadlocks
-	 *  @param i1 bucket index
-	 *  @param i2 bucket index 2
-	 * 
 	 */
-	public void unlockBucketsRead(long i1, long i2) {
+	void unlockBucketsRead(long i1, long i2) {
 		int bucket1LockIdx = getBucketLock(i1);
 		int bucket2LockIdx = getBucketLock(i2);
 		// always unlock segments in same order to avoid deadlocks
@@ -142,7 +128,7 @@ public class SegmentedBucketLocker {
 	/**
 	 * Locks all segments in specific order to prevent deadlocks
 	 */
-	public void lockAllBucketsRead() {
+	void lockAllBucketsRead() {
 		for (StampedLock lock : lockAry) {
 			lock.readLock();
 		}
@@ -150,28 +136,28 @@ public class SegmentedBucketLocker {
 	/**
 	 * Unlocks all segments
 	 */
-	public void unlockAllBucketsRead() {
+	void unlockAllBucketsRead() {
 		for (StampedLock lock : lockAry) {
 			lock.tryUnlockRead();
 		}
 	}
 
-	public void lockSingleBucketWrite(long i1) {
+	void lockSingleBucketWrite(long i1) {
 		int bucketLockIdx = getBucketLock(i1);
 		lockAry[bucketLockIdx].writeLock();
 	}
 
-	public void unlockSingleBucketWrite(long i1) {
+	void unlockSingleBucketWrite(long i1) {
 		int bucketLockIdx = getBucketLock(i1);
 		lockAry[bucketLockIdx].tryUnlockWrite();
 	}
 
-	public void lockSingleBucketRead(long i1) {
+	void lockSingleBucketRead(long i1) {
 		int bucketLockIdx = getBucketLock(i1);
 		lockAry[bucketLockIdx].readLock();
 	}
 
-	public void unlockSingleBucketRead(long i1) {
+	void unlockSingleBucketRead(long i1) {
 		int bucketLockIdx = getBucketLock(i1);
 		lockAry[bucketLockIdx].tryUnlockRead();
 	}

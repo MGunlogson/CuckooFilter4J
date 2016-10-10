@@ -25,7 +25,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.math.IntMath;
 import com.google.common.math.LongMath;
 
@@ -35,7 +34,7 @@ import com.google.common.math.LongMath;
  * @author Mark Gunlogson
  *
  */
-class FilterTable implements Serializable {
+final class FilterTable implements Serializable {
 	private static final long serialVersionUID = 4172048932165857538L;
 	/*
 	 * NOTE: Google's Guava library uses a custom BitSet implementation that
@@ -68,7 +67,7 @@ class FilterTable implements Serializable {
 	 *            number of buckets in filter
 	 * @return
 	 */
-	public static FilterTable create(int bitsPerTag, long numBuckets) {
+	static FilterTable create(int bitsPerTag, long numBuckets) {
 		// why would this ever happen?
 		checkArgument(bitsPerTag < 48, "tagBits (%s) should be less than 48 bits", bitsPerTag);
 		// shorter fingerprints don't give us a good fill capacity
@@ -91,7 +90,7 @@ class FilterTable implements Serializable {
 	 *            tag
 	 * @return true if insert succeeded(bucket not full)
 	 */
-	public boolean insertToBucket(long bucketIndex, long tag) {
+	boolean insertToBucket(long bucketIndex, long tag) {
 
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (checkTag(bucketIndex, i, 0)) {
@@ -112,7 +111,7 @@ class FilterTable implements Serializable {
 	 *            tag
 	 * @return the replaced tag
 	 */
-	public long swapRandomTagInBucket(long curIndex, long tag) {
+	long swapRandomTagInBucket(long curIndex, long tag) {
 		int randomBucketPosition = ThreadLocalRandom.current().nextInt(CuckooFilter.BUCKET_SIZE);
 		return readTagAndSet(curIndex, randomBucketPosition, tag);
 	}
@@ -128,7 +127,7 @@ class FilterTable implements Serializable {
 	 *            tag
 	 * @return true if tag found in one of the buckets
 	 */
-	public boolean findTag(long i1, long i2, long tag) {
+	boolean findTag(long i1, long i2, long tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (checkTag(i1, i, tag) || checkTag(i2, i, tag))
 				return true;
@@ -136,7 +135,7 @@ class FilterTable implements Serializable {
 		return false;
 	}
 
-	public long getStorageSize() {
+	long getStorageSize() {
 		// NOTE: checked source in current Lucene LongBitSet class for thread
 		// safety, make sure it stays this way if you update the class.
 		return memBlock.length();
@@ -151,7 +150,7 @@ class FilterTable implements Serializable {
 	 *            tag
 	 * @return true if item was deleted
 	 */
-	public boolean deleteFromBucket(long i1, long tag) {
+	boolean deleteFromBucket(long i1, long tag) {
 		for (int i = 0; i < CuckooFilter.BUCKET_SIZE; i++) {
 			if (checkTag(i1, i, tag)) {
 				deleteTag(i1, i);
@@ -164,7 +163,6 @@ class FilterTable implements Serializable {
 	/**
 	 * Works but currently only used for testing
 	 */
-	@VisibleForTesting
 	long readTag(long bucketIndex, int posInBucket) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		long tag = 0;
@@ -181,7 +179,6 @@ class FilterTable implements Serializable {
 	 * Reads a tag and sets the bits to a new tag at same time for max
 	 * speedification
 	 */
-	@VisibleForTesting
 	long readTagAndSet(long bucketIndex, int posInBucket, long newTag) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		long tag = 0;
@@ -207,7 +204,6 @@ class FilterTable implements Serializable {
 	 * it. Faster than regular read because it stops checking if it finds a
 	 * non-matching bit.
 	 */
-	@VisibleForTesting
 	boolean checkTag(long bucketIndex, int posInBucket, long tag) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		for (long i = 0; i < bitsPerTag; i++) {
@@ -222,7 +218,6 @@ class FilterTable implements Serializable {
 	 * Similar to checkTag() except it counts the number of matches in the
 	 * buckets.
 	 */
-	@VisibleForTesting
 	int countTag(long i1, long i2, long tag) {
 		int tagCount = 0;
 		for (int posInBucket = 0; posInBucket < CuckooFilter.BUCKET_SIZE; posInBucket++) {
@@ -239,7 +234,6 @@ class FilterTable implements Serializable {
 	 * assumes tag starts with all zeros, but doesn't work properly if the
 	 * position wasn't empty.
 	 */
-	@VisibleForTesting
 	void writeTagNoClear(long bucketIndex, int posInBucket, long tag) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		// BIT BANGIN YEAAAARRHHHGGGHHH
@@ -251,20 +245,6 @@ class FilterTable implements Serializable {
 		}
 	}
 
-	// not used
-	// @VisibleForTesting
-	// void writeTagWithClear(long bucketIndex, int posInBucket, long tag) {
-	// long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
-	// // BIT BANGIN YEAAAARRHHHGGGHHH
-	// for (int i = 0; i < bitsPerTag; i++) {
-	// // second arg just does bit test in tag
-	// if ((tag & (1L << i)) != 0) {
-	// memBlock.set(tagStartIdx + i);
-	// } else {
-	// memBlock.clear(tagStartIdx + i);
-	// }
-	// }
-	// }
 
 	/**
 	 *  Deletes (clears) a tag at a specific bucket index and position
@@ -272,7 +252,6 @@ class FilterTable implements Serializable {
 	 * @param bucketIndex bucket index
 	 * @param posInBucket position in bucket
 	 */
-	@VisibleForTesting
 	void deleteTag(long bucketIndex, int posInBucket) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
 		memBlock.clear(tagStartIdx, tagStartIdx + bitsPerTag);

@@ -25,7 +25,6 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import com.github.mgunlogson.cuckoofilter4j.Utils.Algorithm;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
 import com.google.common.primitives.Longs;
@@ -37,7 +36,7 @@ import com.google.common.primitives.Longs;
  * @author Mark Gunlogson
  *
  */
-class BucketAndTag {
+final class BucketAndTag {
 
 	final long index;
 	final long tag;
@@ -56,7 +55,7 @@ class BucketAndTag {
  * @param <T>
  *            type of item to hash
  */
-class IndexTagCalc<T> implements Serializable {
+final class IndexTagCalc<T> implements Serializable {
 	private static final long serialVersionUID = -2052598678199099089L;
 
 	private final SerializableSaltedHasher<T> hasher;
@@ -64,7 +63,6 @@ class IndexTagCalc<T> implements Serializable {
 	private final int tagBits;
 	private final int hashLength;
 
-	@VisibleForTesting
 	IndexTagCalc(SerializableSaltedHasher<T> hasher, long numBuckets, int tagBits) {
 		checkNotNull(hasher);
 		checkArgument((numBuckets & -numBuckets) == numBuckets, "Number of buckets (%s) must be a power of two",
@@ -183,7 +181,6 @@ class IndexTagCalc<T> implements Serializable {
 		return new BucketAndTag(bucketIndex, tag);
 	}
 
-	@VisibleForTesting
 	long getTagValue32(int hashVal) {
 		/*
 		 * for the tag we take the bits from the right of the hash. Since tag
@@ -196,14 +193,12 @@ class IndexTagCalc<T> implements Serializable {
 		return (hashVal << unusedBits) >>> unusedBits;
 	}
 
-	@VisibleForTesting
 	long getBucketIndex32(int hashVal) {
 		// take index bits from left end of hash
 		// just use everything we're not using for tag, why not
 		return hashIndex(hashVal >>> tagBits);
 	}
 
-	@VisibleForTesting
 	long getTagValue64(long hashVal) {
 		/*
 		 * for the tag we take the bits from the right of the hash. Since tag
@@ -218,7 +213,6 @@ class IndexTagCalc<T> implements Serializable {
 		return (hashVal << unusedBits) >>> unusedBits;
 	}
 
-	@VisibleForTesting
 	long getBucketIndex64(long hashVal) {
 		// take index bits from left end of hash
 		// just use everything we're not using for tag, why not

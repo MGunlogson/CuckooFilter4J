@@ -15,7 +15,6 @@
  * limitations under the License.
  * 
  * Copied from Apache Harmony and Lucene (6.2.0) projects with modifications
- *  * originally package org.apache.lucene.util;
  */
 package com.github.mgunlogson.cuckoofilter4j;
 
@@ -425,8 +424,7 @@ final class LongBitSet implements Serializable {
 	}
 
 	@Override
-	protected
-	LongBitSet clone() {
+	public LongBitSet clone() {
 		long[] bits = new long[this.bits.length];
 		System.arraycopy(this.bits, 0, bits, 0, numWords);
 		return new LongBitSet(bits, numBits);
@@ -434,8 +432,7 @@ final class LongBitSet implements Serializable {
 
 	/** returns true if both sets have the same bits set */
 	@Override
-	public
-	boolean equals(Object o) {
+	public boolean equals(Object o) {
 		if (this == o) {
 			return true;
 		}
@@ -451,8 +448,7 @@ final class LongBitSet implements Serializable {
 	}
 
 	@Override
-	public
-	int hashCode() {
+	public int hashCode() {
 		// Depends on the ghost bits being clear!
 		long h = 0;
 		for (int i = numWords; --i >= 0;) {

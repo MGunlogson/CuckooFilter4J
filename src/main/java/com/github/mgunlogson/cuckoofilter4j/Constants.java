@@ -15,7 +15,6 @@
  * limitations under the License.
  * 
  * Copied from Apache Harmony and Lucene (6.2.0) projects with modifications
- *  * originally package org.apache.lucene.util;
  */
 package com.github.mgunlogson.cuckoofilter4j;
 

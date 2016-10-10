@@ -30,7 +30,7 @@ import com.google.common.math.DoubleMath;
  * @author Mark Gunlogson
  *
  */
-public class Utils {
+public final class Utils {
 
 	/**
 	 * The hashing algorithm used internally.
@@ -88,27 +88,27 @@ public class Utils {
 			this.tag = tag;
 		}
 
-		public long getI1() {
+		long getI1() {
 			return i1;
 		}
 
-		public void setI1(long i1) {
+		void setI1(long i1) {
 			this.i1 = i1;
 		}
 
-		public long getI2() {
+		long getI2() {
 			return i2;
 		}
 
-		public void setI2(long i2) {
+		void setI2(long i2) {
 			this.i2 = i2;
 		}
 
-		public long getTag() {
+		long getTag() {
 			return tag;
 		}
 
-		public void setTag(long tag) {
+		void setTag(long tag) {
 			this.tag = tag;
 		}
 

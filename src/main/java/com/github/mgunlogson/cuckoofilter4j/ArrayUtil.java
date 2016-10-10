@@ -16,8 +16,6 @@
  * 
  * 
  * Copied from Apache Harmony and Lucene (6.2.0) projects with modifications
- * 
- * originally package org.apache.lucene.util;
  */
 package com.github.mgunlogson.cuckoofilter4j;
 
@@ -30,7 +28,7 @@ import java.util.Arrays;
 final class ArrayUtil {
 
   /** Maximum length for an array (Integer.MAX_VALUE - RamUsageEstimator.NUM_BYTES_ARRAY_HEADER). */
-  public static final int MAX_ARRAY_LENGTH = Integer.MAX_VALUE - RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+  static final int MAX_ARRAY_LENGTH = Integer.MAX_VALUE - RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
 
   private ArrayUtil() {} // no instance
 

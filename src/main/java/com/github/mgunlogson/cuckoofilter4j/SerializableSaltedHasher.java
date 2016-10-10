@@ -28,7 +28,6 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import com.github.mgunlogson.cuckoofilter4j.Utils.Algorithm;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
@@ -45,7 +44,7 @@ import com.google.common.hash.Hashing;
  * @param <T>
  *            type of item to hash
  */
-public class SerializableSaltedHasher<T> implements Serializable {
+final class SerializableSaltedHasher<T> implements Serializable {
 	/**
 	
 	 */
@@ -57,7 +56,6 @@ public class SerializableSaltedHasher<T> implements Serializable {
 	private transient HashFunction hasher;
 	private final Funnel<? super T> funnel;
 
-	@VisibleForTesting
 	SerializableSaltedHasher(long seedNSalt, long addlSipSeed, Funnel<? super T> funnel, Algorithm alg) {
 		checkNotNull(alg);
 		checkNotNull(funnel);
@@ -68,14 +66,14 @@ public class SerializableSaltedHasher<T> implements Serializable {
 		hasher = configureHash(alg, seedNSalt, addlSipSeed);
 	}
 
-	public static <T> SerializableSaltedHasher<T> create(int hashBitsNeeded, Funnel<? super T> funnel) {
+	static <T> SerializableSaltedHasher<T> create(int hashBitsNeeded, Funnel<? super T> funnel) {
 		Algorithm alg = Algorithm.Murmur3_32;
 		if (hashBitsNeeded > 32)
 			alg = Algorithm.Murmur3_128;
 		return create(alg, funnel);
 	}
 
-	public static <T> SerializableSaltedHasher<T> create(Algorithm alg, Funnel<? super T> funnel) {
+	static <T> SerializableSaltedHasher<T> create(Algorithm alg, Funnel<? super T> funnel) {
 		checkNotNull(alg);
 		checkNotNull(funnel);
 		SecureRandom randomer = new SecureRandom();
@@ -127,6 +125,10 @@ public class SerializableSaltedHasher<T> implements Serializable {
 		return hashInst.hash();
 	}
 
+	int codeBitSize() {
+		return hasher.bits();
+	}
+	
 	@Override
 	public boolean equals(@Nullable Object object) {
 		if (object == this) {
@@ -145,9 +147,6 @@ public class SerializableSaltedHasher<T> implements Serializable {
 		return Objects.hash(seedNSalt, alg, funnel, addlSipSeed);
 	}
 
-	int codeBitSize() {
-		return hasher.bits();
-	}
 
 	public SerializableSaltedHasher<T> copy() {
 
