@@ -1,4 +1,7 @@
 [![Javadocs](http://javadoc.io/badge/com.github.mgunlogson/cuckoofilter4j.svg)](http://javadoc.io/doc/com.github.mgunlogson/cuckoofilter4j)
+[![Build Status](https://travis-ci.org/MGunlogson/CuckooFilter4J.svg?branch=master)](https://travis-ci.org/MGunlogson/CuckooFilter4J)
+
+
 
 #Cuckoo For Java - A fast multithreaded Java Cuckoo Filter#
 This library allows you to build Cuckoo filters using an interface similar to Google's Guava Bloom filters.
