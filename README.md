@@ -37,7 +37,7 @@ My personal thanks goes out to the authors of those libaries, their code helped 
 Usage
 -------------------
 
-Below is a full example of creating and using the filter. Many more examples can be  found in the [benchmark](bench/) and [test](test/com/cuckooforjava) folders within the project.
+Below is a full example of creating and using the filter. Many more examples can be  found in the [test](/src/test/java/com/github/mgunlogson/cuckoofilter4j) folders within the project.
 
 ```java
 import com.cuckooforjava.CuckooFilter;
@@ -47,7 +47,7 @@ public class Example {
 
 	public static void main(String[] args) {
 		// create
-		CuckooFilter<Integer> filter = CuckooFilter.create(Funnels.integerFunnel(), 100000);
+		CuckooFilter<Integer> filter = new CuckooFilter.Builder<>(Funnels.integerFunnel(), 2000000).build();
 		// insert
 		if (filter.put(42)) {
 			System.out.println("Insert Success!");
