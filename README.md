@@ -1,7 +1,8 @@
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mgunlogson/cuckoofilter4j/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mgunlogson/cuckoofilter4j)
 [![Javadocs](http://javadoc.io/badge/com.github.mgunlogson/cuckoofilter4j.svg)](http://javadoc.io/doc/com.github.mgunlogson/cuckoofilter4j)
 [![Build Status](https://travis-ci.org/MGunlogson/CuckooFilter4J.svg?branch=master)](https://travis-ci.org/MGunlogson/CuckooFilter4J)
 [![Coverage Status](https://coveralls.io/repos/github/MGunlogson/CuckooFilter4J/badge.svg?branch=master)](https://coveralls.io/github/MGunlogson/CuckooFilter4J?branch=master)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.mgunlogson/cuckofilter4j/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mgunlogson/cuckofilter4j)
+
 
 
 
@@ -9,6 +10,9 @@
 This library allows you to build Cuckoo filters using an interface similar to Google's Guava Bloom filters.
 * Unlike Guava's Bloom filters, this library is also thread-safe and faster with multiple threads like Java's ConcurrentHashMap. 
 * Cuckoo For Java is Apache licensed and unit tested.
+
+
+**Download At Maven Central**
 
 
 About Cuckoo Filters
@@ -71,7 +75,7 @@ public class Example {
 
 Documentation
 -------------------
-**Visit the JavaDoc here**
+<strong>[Visit The JavaDoc Here](http://javadoc.io/doc/com.github.mgunlogson/cuckoofilter4j)</strong>
 
 
 False Positives
