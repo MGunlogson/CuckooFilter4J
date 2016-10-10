@@ -6,7 +6,7 @@
 
 
 
-#Cuckoo Filter For Java - A fast multithreaded Cuckoo Filter Library#
+#Cuckoo Filter For Java - A fast multithreaded Cuckoo filter library#
 This library allows you to build Cuckoo filters using an interface similar to Google's Guava Bloom filters.
 * Unlike Guava's Bloom filters, this library is also thread-safe and faster with multiple threads like Java's ConcurrentHashMap. 
 * Cuckoo For Java is Apache licensed and unit tested.
