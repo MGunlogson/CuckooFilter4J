@@ -26,12 +26,22 @@
 						</configuration>
 					</plugin>
 					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+						<!-- Custom config for Travis CI...needs more memory than defaults -->
+							<forkCount>3</forkCount>
+							<reuseForks>true</reuseForks>
+							<argLine>-Xmx1024m -XX:MaxPermSize=256m</argLine>
+						</configuration>
+					</plugin>
+					<plugin>
 						<groupId>org.jacoco</groupId>
 						<artifactId>jacoco-maven-plugin</artifactId>
 						<version>0.7.6.201602180812</version>
 						<configuration>
 							<excludes>
-							<!-- These files are from Apache Lucene project -->
+								<!-- These files are from Apache Lucene project -->
 								<exclude>RamUsageEstimator.class</exclude>
 								<exclude>Constants.class</exclude>
 								<exclude>ArrayUtil.class</exclude>
