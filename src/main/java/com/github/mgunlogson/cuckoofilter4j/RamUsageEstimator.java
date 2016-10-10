@@ -15,9 +15,9 @@
  * limitations under the License.
  * 
  * Copied from Apache Harmony and Lucene (6.2.0) projects with modifications
+ *  * originally package org.apache.lucene.util;
  */
-package org.apache.lucene.util;
-
+package com.github.mgunlogson.cuckoofilter4j;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -43,16 +43,16 @@ import java.util.Map;
  * 
  * @lucene.internal
  */
-public final class RamUsageEstimator {
+final class RamUsageEstimator {
 
   /** One kilobyte bytes. */
-  public static final long ONE_KB = 1024;
+  static final long ONE_KB = 1024;
   
   /** One megabyte bytes. */
-  public static final long ONE_MB = ONE_KB * ONE_KB;
+  static final long ONE_MB = ONE_KB * ONE_KB;
   
   /** One gigabyte bytes.*/
-  public static final long ONE_GB = ONE_KB * ONE_MB;
+  static final long ONE_GB = ONE_KB * ONE_MB;
 
   /** No instantiation. */
   private RamUsageEstimator() {}
@@ -62,80 +62,80 @@ public final class RamUsageEstimator {
    * @deprecated use {@code 1} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_BOOLEAN = 1;
+  final static int NUM_BYTES_BOOLEAN = 1;
   /** 
    * Number of bytes used to represent a {@code byte} in binary form
    * @deprecated use {@code 1} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_BYTE = 1;
+  final static int NUM_BYTES_BYTE = 1;
   /** 
    * Number of bytes used to represent a {@code char} in binary form
    * @deprecated use {@link Character#BYTES} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_CHAR = Character.BYTES;
+  final static int NUM_BYTES_CHAR = Character.BYTES;
   /** 
    * Number of bytes used to represent a {@code short} in binary form
    * @deprecated use {@link Short#BYTES} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_SHORT = Short.BYTES;
+  final static int NUM_BYTES_SHORT = Short.BYTES;
   /** 
    * Number of bytes used to represent an {@code int} in binary form
    * @deprecated use {@link Integer#BYTES} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_INT = Integer.BYTES;
+  final static int NUM_BYTES_INT = Integer.BYTES;
   /** 
    * Number of bytes used to represent a {@code float} in binary form
    * @deprecated use {@link Float#BYTES} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_FLOAT = Float.BYTES;
+  final static int NUM_BYTES_FLOAT = Float.BYTES;
   /** 
    * Number of bytes used to represent a {@code long} in binary form
    * @deprecated use {@link Long#BYTES} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_LONG = Long.BYTES;
+  final static int NUM_BYTES_LONG = Long.BYTES;
   /** 
    * Number of bytes used to represent a {@code double} in binary form
    * @deprecated use {@link Double#BYTES} instead.
    */
   @Deprecated
-  public final static int NUM_BYTES_DOUBLE = Double.BYTES;
+  final static int NUM_BYTES_DOUBLE = Double.BYTES;
 
   /** 
    * True, iff compressed references (oops) are enabled by this JVM 
    */
-  public final static boolean COMPRESSED_REFS_ENABLED;
+  final static boolean COMPRESSED_REFS_ENABLED;
 
   /** 
    * Number of bytes this JVM uses to represent an object reference. 
    */
-  public final static int NUM_BYTES_OBJECT_REF;
+  final static int NUM_BYTES_OBJECT_REF;
 
   /**
    * Number of bytes to represent an object header (no fields, no alignments).
    */
-  public final static int NUM_BYTES_OBJECT_HEADER;
+  final static int NUM_BYTES_OBJECT_HEADER;
 
   /**
    * Number of bytes to represent an array header (no content, but with alignments).
    */
-  public final static int NUM_BYTES_ARRAY_HEADER;
+  final static int NUM_BYTES_ARRAY_HEADER;
   
   /**
    * A constant specifying the object alignment boundary inside the JVM. Objects will
    * always take a full multiple of this constant, possibly wasting some space. 
    */
-  public final static int NUM_BYTES_OBJECT_ALIGNMENT;
+  final static int NUM_BYTES_OBJECT_ALIGNMENT;
 
   /**
    * Sizes of primitive classes.
    */
-  private static final Map<Class<?>,Integer> primitiveSizes = new IdentityHashMap<>();
+  static final Map<Class<?>,Integer> primitiveSizes = new IdentityHashMap<>();
   static {
     primitiveSizes.put(boolean.class, 1);
     primitiveSizes.put(byte.class, 1);
@@ -237,7 +237,7 @@ public final class RamUsageEstimator {
   /** 
    * Aligns an object size to be the next multiple of {@link #NUM_BYTES_OBJECT_ALIGNMENT}. 
    */
-  public static long alignObjectSize(long size) {
+  static long alignObjectSize(long size) {
     size += (long) NUM_BYTES_OBJECT_ALIGNMENT - 1L;
     return size - (size % NUM_BYTES_OBJECT_ALIGNMENT);
   }
@@ -246,7 +246,7 @@ public final class RamUsageEstimator {
    * Return the size of the provided {@link Long} object, returning 0 if it is
    * cached by the JVM and its shallow size otherwise.
    */
-  public static long sizeOf(Long value) {
+  static long sizeOf(Long value) {
     if (value >= LONG_CACHE_MIN_VALUE && value <= LONG_CACHE_MAX_VALUE) {
       return 0;
     }
@@ -254,48 +254,48 @@ public final class RamUsageEstimator {
   }
 
   /** Returns the size in bytes of the byte[] object. */
-  public static long sizeOf(byte[] arr) {
+  static long sizeOf(byte[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + arr.length);
   }
   
   /** Returns the size in bytes of the boolean[] object. */
-  public static long sizeOf(boolean[] arr) {
+  static long sizeOf(boolean[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + arr.length);
   }
   
   /** Returns the size in bytes of the char[] object. */
-  public static long sizeOf(char[] arr) {
+  static long sizeOf(char[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) Character.BYTES * arr.length);
   }
 
   /** Returns the size in bytes of the short[] object. */
-  public static long sizeOf(short[] arr) {
+  static long sizeOf(short[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) Short.BYTES * arr.length);
   }
   
   /** Returns the size in bytes of the int[] object. */
-  public static long sizeOf(int[] arr) {
+   static long sizeOf(int[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) Integer.BYTES * arr.length);
   }
   
   /** Returns the size in bytes of the float[] object. */
-  public static long sizeOf(float[] arr) {
+  static long sizeOf(float[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) Float.BYTES * arr.length);
   }
   
   /** Returns the size in bytes of the long[] object. */
-  public static long sizeOf(long[] arr) {
+  static long sizeOf(long[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) Long.BYTES * arr.length);
   }
   
   /** Returns the size in bytes of the double[] object. */
-  public static long sizeOf(double[] arr) {
+  static long sizeOf(double[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) Double.BYTES * arr.length);
   }
 
   /** Returns the shallow size in bytes of the Object[] object. */
   // Use this method instead of #shallowSizeOf(Object) to avoid costly reflection
-  public static long shallowSizeOf(Object[] arr) {
+  static long shallowSizeOf(Object[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * arr.length);
   }
 
@@ -306,7 +306,7 @@ public final class RamUsageEstimator {
    * 
    * JVM object alignments are also applied.
    */
-  public static long shallowSizeOf(Object obj) {
+  static long shallowSizeOf(Object obj) {
     if (obj == null) return 0;
     final Class<?> clz = obj.getClass();
     if (clz.isArray()) {
@@ -324,7 +324,7 @@ public final class RamUsageEstimator {
    * @see #shallowSizeOf(Object)
    * @throws IllegalArgumentException if {@code clazz} is an array class. 
    */
-  public static long shallowSizeOfInstance(Class<?> clazz) {
+  static long shallowSizeOfInstance(Class<?> clazz) {
     if (clazz.isArray())
       throw new IllegalArgumentException("This method does not work with array classes.");
     if (clazz.isPrimitive())
@@ -384,7 +384,7 @@ public final class RamUsageEstimator {
   /**
    * Returns <code>size</code> in human-readable units (GB, MB, KB or bytes).
    */
-  public static String humanReadableUnits(long bytes) {
+  static String humanReadableUnits(long bytes) {
     return humanReadableUnits(bytes, 
         new DecimalFormat("0.#", DecimalFormatSymbols.getInstance(Locale.ROOT)));
   }
@@ -392,7 +392,7 @@ public final class RamUsageEstimator {
   /**
    * Returns <code>size</code> in human-readable units (GB, MB, KB or bytes). 
    */
-  public static String humanReadableUnits(long bytes, DecimalFormat df) {
+  static String humanReadableUnits(long bytes, DecimalFormat df) {
     if (bytes / ONE_GB > 0) {
       return df.format((float) bytes / ONE_GB) + " GB";
     } else if (bytes / ONE_MB > 0) {

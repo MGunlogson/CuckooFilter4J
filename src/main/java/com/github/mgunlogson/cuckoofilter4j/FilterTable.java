@@ -22,7 +22,6 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.lucene.util.LongBitSet;
 
 import javax.annotation.Nullable;
 

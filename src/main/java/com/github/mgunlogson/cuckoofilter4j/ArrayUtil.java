@@ -16,8 +16,10 @@
  * 
  * 
  * Copied from Apache Harmony and Lucene (6.2.0) projects with modifications
+ * 
+ * originally package org.apache.lucene.util;
  */
-package org.apache.lucene.util;
+package com.github.mgunlogson.cuckoofilter4j;
 
 import java.util.Arrays;
 
@@ -25,7 +27,7 @@ import java.util.Arrays;
  * Methods for manipulating arrays.
  */
 
-public final class ArrayUtil {
+final class ArrayUtil {
 
   /** Maximum length for an array (Integer.MAX_VALUE - RamUsageEstimator.NUM_BYTES_ARRAY_HEADER). */
   public static final int MAX_ARRAY_LENGTH = Integer.MAX_VALUE - RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
@@ -52,7 +54,7 @@ public final class ArrayUtil {
    * @lucene.internal
    */
 
-  public static int oversize(int minTargetSize, int bytesPerElement) {
+  static int oversize(int minTargetSize, int bytesPerElement) {
 
     if (minTargetSize < 0) {
       // catch usage that accidentally overflows int
@@ -127,7 +129,7 @@ public final class ArrayUtil {
 
 
 
-  public static long[] grow(long[] array, int minSize) {
+  static long[] grow(long[] array, int minSize) {
     assert minSize >= 0: "size must be positive (got " + minSize + "): likely integer overflow?";
     if (array.length < minSize) {
       return Arrays.copyOf(array, oversize(minSize, Long.BYTES));

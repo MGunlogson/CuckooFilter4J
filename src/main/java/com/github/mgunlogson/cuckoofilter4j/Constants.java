@@ -15,21 +15,22 @@
  * limitations under the License.
  * 
  * Copied from Apache Harmony and Lucene (6.2.0) projects with modifications
+ *  * originally package org.apache.lucene.util;
  */
-package org.apache.lucene.util;
+package com.github.mgunlogson.cuckoofilter4j;
 
 /**
  * Some useful constants.
  **/
 
-public final class Constants {
+final class Constants {
   private Constants() {}  // can't construct
 
-  public static final String OS_ARCH = System.getProperty("os.arch");
+  static final String OS_ARCH = System.getProperty("os.arch");
 
  
   /** True iff running on a 64bit JVM */
-  public static final boolean JRE_IS_64BIT;
+  static final boolean JRE_IS_64BIT;
   
   static {
     boolean is64Bit = false;
