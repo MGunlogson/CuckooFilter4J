@@ -122,7 +122,7 @@ final class FilterTable implements Serializable {
 	 * @param i1
 	 *            first bucket index
 	 * @param i2
-	 *            second bucket index(alternate)
+	 *            second bucket index (alternate)
 	 * @param tag
 	 *            tag
 	 * @return true if tag found in one of the buckets
