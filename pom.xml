@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>cuckooforjava</groupId>
-  <artifactId>cuckooforjava</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <groupId>com.github.mgunlogson</groupId>
+  <artifactId>cuckoofilter4j</artifactId>
+  <version>1.0.0</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <plugins>
@@ -27,5 +27,39 @@
   		<artifactId>guava-testlib</artifactId>
   		<version>19.0</version>
   	</dependency>
+  			<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.8</version>
+			<scope>test</scope>
+		</dependency>
   </dependencies>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+	<name>${project.groupId}:${project.artifactId}</name>
+  <url>https://github.com/MGunlogson/CuckooFilter4J</url>
+  <description>A high performance thread-safe Java implementation of a Cuckoo filter. Uses similar conventions Guava's Bloom filters.</description>
+  <issueManagement>
+  	<url>https://github.com/MGunlogson/CuckooFilter4J/issues</url>
+  	<system>GitHub Issue</system>
+  </issueManagement>
+  <developers>
+		<developer>
+			<email>mark@gunlogson.com</email>
+			<name>Mark Gunlogson</name>
+			<url>https://github.com/MGunlogson/</url>
+			<id>MGunlogson</id>
+		</developer>
+	</developers>
+  
+  <scm>
+  	<url>https://github.com/MGunlogson/CuckooFilter4J</url>
+  	<connection>scm:git:git://github.com/MGunlogson/CuckooFilter4J.git</connection>
+  	<developerConnection>scm:git:git@github.com:MGunlogson/CuckooFilter4J.git</developerConnection>
+  </scm>
 </project>

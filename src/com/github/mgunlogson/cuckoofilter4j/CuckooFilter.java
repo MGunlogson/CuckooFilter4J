@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package com.cuckooforjava;
+package com.github.mgunlogson.cuckoofilter4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -28,8 +28,8 @@ import java.util.concurrent.locks.StampedLock;
 
 import javax.annotation.Nullable;
 
-import com.cuckooforjava.Utils.Algorithm;
-import com.cuckooforjava.Utils.Victim;
+import com.github.mgunlogson.cuckoofilter4j.Utils.Algorithm;
+import com.github.mgunlogson.cuckoofilter4j.Utils.Victim;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.Funnel;
 

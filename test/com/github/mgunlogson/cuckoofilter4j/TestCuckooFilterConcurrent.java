@@ -1,4 +1,4 @@
-package com.cuckooforjava;
+package com.github.mgunlogson.cuckoofilter4j;
 
 import org.junit.Test;
 

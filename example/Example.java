@@ -14,8 +14,8 @@
    limitations under the License.TWARE.
 */
 
-import com.cuckooforjava.CuckooFilter;
-import com.cuckooforjava.Utils.Algorithm;
+import com.github.mgunlogson.cuckoofilter4j.CuckooFilter;
+import com.github.mgunlogson.cuckoofilter4j.Utils.Algorithm;
 import com.google.common.hash.Funnels;
 
 public class Example {

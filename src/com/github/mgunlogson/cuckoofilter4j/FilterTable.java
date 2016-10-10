@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package com.cuckooforjava;
+package com.github.mgunlogson.cuckoofilter4j;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

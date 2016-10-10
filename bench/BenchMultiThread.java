@@ -18,7 +18,7 @@
 
 import java.util.ArrayList;
 
-import com.cuckooforjava.CuckooFilter;
+import com.github.mgunlogson.cuckoofilter4j.CuckooFilter;
 import com.google.common.hash.Funnels;
 
 public class BenchMultiThread {

@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package com.cuckooforjava;
+package com.github.mgunlogson.cuckoofilter4j;
 
 import java.io.Serializable;
 import java.math.RoundingMode;

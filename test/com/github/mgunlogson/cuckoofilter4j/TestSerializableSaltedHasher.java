@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package com.cuckooforjava;
+package com.github.mgunlogson.cuckoofilter4j;
 
 import static org.junit.Assert.*;
 
@@ -23,7 +23,8 @@ import java.util.HashSet;
 
 import org.junit.Test;
 
-import com.cuckooforjava.Utils.Algorithm;
+import com.github.mgunlogson.cuckoofilter4j.SerializableSaltedHasher;
+import com.github.mgunlogson.cuckoofilter4j.Utils.Algorithm;
 import com.google.common.hash.Funnels;
 import com.google.common.testing.ClassSanityTester;
 import com.google.common.testing.EqualsTester;
