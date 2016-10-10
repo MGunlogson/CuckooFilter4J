@@ -12,7 +12,7 @@ This library allows you to build Cuckoo filters using an interface similar to Go
 * Cuckoo For Java is Apache licensed and unit tested.
 
 
-**Download At Maven Central**
+<strong>[Download At Maven Central](http://search.maven.org/#artifactdetails%7Ccom.github.mgunlogson%7Ccuckoofilter4j%7C1.0.0%7Cjar)</strong>
 
 
 About Cuckoo Filters
