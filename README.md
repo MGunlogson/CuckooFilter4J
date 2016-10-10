@@ -1,3 +1,5 @@
+[![Javadocs](http://javadoc.io/badge/com.github.mgunlogson/cuckoofilter4j.svg)](http://javadoc.io/doc/com.github.mgunlogson/cuckoofilter4j)
+
 #Cuckoo For Java - A fast multithreaded Java Cuckoo Filter#
 This library allows you to build Cuckoo filters using an interface similar to Google's Guava Bloom filters.
 * Unlike Guava's Bloom filters, this library is also thread-safe and faster with multiple threads like Java's ConcurrentHashMap. 
