@@ -40,7 +40,7 @@ Usage
 Below is a full example of creating and using the filter. Many more examples can be  found in the [test](/src/test/java/com/github/mgunlogson/cuckoofilter4j) folders within the project.
 
 ```java
-import com.cuckooforjava.CuckooFilter;
+import com.github.mgunlogson.cuckoofilter4j;
 import com.google.common.hash.Funnels;
 
 public class Example {
