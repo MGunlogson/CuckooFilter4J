@@ -100,7 +100,7 @@ Once the filter reaches capacity (`put()` returns false). It's best to either re
 
 Speed/Benchmarks
 ------------------------------
-Cuckoo For Java is roughly the same speed as Guava's Bloom filters when running single-threaded. Guava's Bloom is usually faster with very small tables, but the trend is reversed with tables too large to fit in the CPU cache. Overall the single-threaded speed of the two libraries is comparable. This library supports concurrent access through multithreading (Guava's Bloom does not). In my tests this scales fairly well, making Cuckoo For Java much faster than Bloom filters for multi-threaded applications. On my 4 core machine, running inserts on all cores is roughly 3x faster than single-threaded operation. Cpu architecture will affect this, so your mileage may vary. See the [benchmark](bench/) folder for some tests to run on your own system.
+CuckooFilter4J is roughly the same speed as Guava's Bloom filters when running single-threaded. Guava's Bloom is usually faster with small tables, but the trend is reversed with tables too large to fit in the CPU cache. Overall the single-threaded speed of the two libraries is comparable. This library supports concurrent access through multithreading (Guava's Bloom does not). In my tests this scales fairly well, making CuckooFilter4J faster than Bloom filters for multi-threaded applications. On my 4 core machine, running inserts on all cores is roughly 3x faster than single-threaded operation. Cpu architecture will affect this, so your mileage may vary. See the [benchmark](bench/) folder for some tests to run on your own system.
 
 
 Hashing Algorithms
