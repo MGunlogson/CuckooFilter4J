@@ -6,11 +6,12 @@
 
 
 
-#Cuckoo Filter For Java - A fast multithreaded Cuckoo filter library#
-This library allows you to build Cuckoo filters using an interface similar to Google's Guava Bloom filters.
-* Unlike Guava's Bloom filters, this library is also thread-safe and faster with multiple threads like Java's ConcurrentHashMap. 
-* Cuckoo For Java is Apache licensed and unit tested.
-
+#Cuckoo Filter For Java - A fast thread-safe Cuckoo filter library#
+This library offers a similar interface to Google Guava's Bloom filters. In most cases it can be used interchangeably with Bloom filters and has some additional advantages.
+* Unlike Guava's Bloom filters, this library is thread-safe and most operations run concurrently. 
+* Supports deletions and counting.
+* Configurable hashing algorithm for tunable speed and security.
+* Apache licensed and unit tested.
 
 <strong>[Download At Maven Central](http://search.maven.org/#artifactdetails%7Ccom.github.mgunlogson%7Ccuckoofilter4j%7C1.0.0%7Cjar)</strong>
 
@@ -91,7 +92,7 @@ Cuckoo filters allow deletion like counting Bloom filters. While counting Bloom 
 
 Counting
 ---------------
-Cuckoo filters support counting items, like counting Bloom filters. The maximum count is still limited by max-duplicates to 7 so this should only be used to count small numbers. The measured count may be higher than actual count due to false negatives, but will never be lower since Cuckoo filters have no false-negatives.
+Cuckoo filters support counting items, like counting Bloom filters. The maximum count is still limited by max-duplicates to 7 so this should only be used to count small numbers. The measured count may be higher than actual count due to false positives, but will never be lower since Cuckoo filters have no false negatives.
 
 Capacity
 -------------------- 
@@ -106,9 +107,9 @@ Hashing Algorithms
 ----------------------------
 Hash collision attacks are theoretically possible against Cuckoo filters (as with any hash table based structure). If this is an issue for your application, use one of the cryptographically secure (but slower) hash functions. The default hash function, Murmer3 is *not* secure. Secure functions include SHA and SipHash. All hashes,including non-secure, are internally seeded and salted. Practical attacks against any of them are unlikely. Also note that the maximum supported size of the filter depends on the hash funciton. Especially in the case of 32 bit Murmur3, the hash will limit table size. Even with a 32 bit hash, the maximum table size is around 270 megabytes. With 64 bit hashes the maximum table size is extremely large, and practically unlimited using 128+bit hash functions. In any case, the library will refuse to create the table using an invalid configuration.
 
-MultiThreading
+Multi-Threading
 --------------------------------
-The library is designed for all operations to be thread-safe. Most methods also use table segmentation to run multiple operations concurrently. Notable exceptions include copy, serialization, and hashcode which nessecarily lock the entire table until complete. <strong>Thread safety should be considered BETA at the moment.</strong> Multithreading is notoriously hard to test, and despite my best effort to avoid bugs and deadlocks it is likely that some remain. If you are using multithreading in production I will do my best to provide prompt support and give you my thanks :).
+All operations are thread-safe. Most also run concurrently for increased performance. Notable exceptions include copy, serialization, and hashcode which nessecarily lock the entire table - running on a single thread until complete. <strong>Thread safety should be considered BETA at the moment.</strong> Multithreading is notoriously hard to test, and despite my best effort to avoid bugs and deadlocks it is likely that some remain. If you are using multithreading in production I will do my best to provide prompt support and give you my thanks :).
 
 
 
