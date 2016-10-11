@@ -58,6 +58,9 @@ public class Example {
 		}
 		// count
 		System.out.println("Filter has " + filter.getCount() + " items");
+		
+				// count
+		System.out.println("42 has been inserted approximately " + filter.approximateCount(42) + " times");
 
 		// % loaded
 		System.out.println("Filter is " + String.format("%.0f%%", filter.getLoadFactor() * 100) + " loaded");
