@@ -7,10 +7,18 @@
 
 
 #Cuckoo Filter For Java#
-This library offers a similar interface to Guava's Bloom filters. In most cases it can be used interchangeably and has additional advantages.
-* Thread-safety and concurrent operations.
-* Deletions and counting.
-* Configurable hashing algorithm.
+This library offers a similar interface to Guava's Bloom filters. In most cases it can be used interchangeably and has additional advantages including thread-safety, concurrent operations, deletions/counting and a configurable hashing algorithm.
+
+ * [Installation](#installation)
+ * [Usage](#usage)
+ * [Documentation](#documentation)
+ * [About Cuckoo Filters](#about-cuckoo-filters)
+   * [Deletions/Duplicates](#duplicates)
+   * [Counting](#counting)
+   * [Capacity](#capacity)
+   * [Speed](#speed)
+   * [Hashing Algorithms](#hashing-algorithms)
+   * [Multi-Threading](#multi-threading)
 
 Installation
 -----------------
@@ -92,7 +100,7 @@ False Positives
 -----------------
  The false positive rate of the filter is the probability that `mightContain()` will erroneously return `true` for an object that was not added to the filter. Unlike Bloom filters, a Cuckoo filter will fail to insert when it reaches capacity. If an insert fails `put()` will `return false`
 
-Deletions/Duplicates
+Duplicates
 -----------------
 Cuckoo filters allow deletion like counting Bloom filters. While counting Bloom filters invariably use more space to allow deletions, Cuckoo filters achieve this with *no* space or time cost. Like counting variations of Bloom filters, Cuckoo filters have a limit to the number of times you can insert duplicate items. This limit is 8-9 in the current design, depending on internal state. **Reaching this limit can cause further inserts to fail and degrades the performance of the filter**. Occasional duplicates will not degrade the performance of the filter but will slightly reduce capacity. Existing items can be deleted without affecting the false positive rate or causing false negatives. However, deleting items that were *not* previously added to the filter can cause false negatives.
 
@@ -104,7 +112,7 @@ Capacity
 -------------------- 
 Once the filter reaches capacity (`put()` returns false). It's best to either rebuild the existing filter or create a larger one. Deleting items in the current filter is also an option, but you should delete at least ~2% of the items in the filter before inserting again.
 
-Speed/Benchmarks
+Speed
 ------------------------------
 CuckooFilter4J is roughly the same speed as Guava's Bloom filters when running single-threaded. Guava's Bloom is usually faster with small tables, but the trend is reversed with tables too large to fit in the CPU cache. Overall the single-threaded speed of the two libraries is comparable. This library supports concurrent access through multithreading (Guava's Bloom does not). In my tests this scales fairly well, making CuckooFilter4J faster than Bloom filters for multi-threaded applications. On my 4 core machine, running inserts on all cores is roughly 3x faster than single-threaded operation. Cpu architecture will affect this, so your mileage may vary. See the [benchmark](bench/) folder for some tests to run on your own system.
 
