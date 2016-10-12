@@ -6,7 +6,7 @@
 
 
 
-#Cuckoo Filter For Java - A fast thread-safe Cuckoo filter library#
+#Cuckoo Filter For Java#
 This library offers a similar interface to Google Guava's Bloom filters. In most cases it can be used interchangeably with Bloom filters and has some additional advantages.
 * Unlike Guava's Bloom filters, this library is thread-safe and most operations run concurrently. 
 * Supports deletions and counting.
