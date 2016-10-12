@@ -7,12 +7,22 @@
 
 
 #Cuckoo Filter For Java#
-This library offers a similar interface to Google Guava's Bloom filters. In most cases it can be used interchangeably with Bloom filters and has some additional advantages.
-* Unlike Guava's Bloom filters, this library is thread-safe and most operations run concurrently. 
-* Supports deletions and counting.
-* Configurable hashing algorithm for tunable speed and security.
+This library offers a similar interface to Guava's Bloom filters. In most cases it can be used interchangeably and has additional advantages.
+* Thread-safety and concurrent operations.
+* Deletions and counting.
+* Configurable hashing algorithm.
 
-<strong>[Download At Maven Central](http://search.maven.org/#artifactdetails%7Ccom.github.mgunlogson%7Ccuckoofilter4j%7C1.0.0%7Cjar)</strong>
+Installation
+-----------------
+Maven artifact:
+```xml
+<dependency>
+    <groupId>com.github.mgunlogson</groupId>
+    <artifactId>cuckoofilter4j</artifactId>
+    <version>1.0.1</version>
+</dependency> 
+```
+<strong>[Download At Maven Central](http://search.maven.org/#artifactdetails%7Ccom.github.mgunlogson%7Ccuckoofilter4j%7C1.0.1%7Cjar)</strong>
 
 Usage
 -------------------
