@@ -7,16 +7,34 @@
 #Cuckoo Filter For Java#
 This library offers a similar interface to Guava's Bloom filters. In most cases it can be used interchangeably and has additional advantages including thread-safety, concurrent operations, deletions/counting and a configurable hashing algorithm.
 
+ * [About Cuckoo Filters](#about-cuckoo-filters)
  * [Installation](#installation)
  * [Usage](#usage)
  * [Documentation](#documentation)
- * [About Cuckoo Filters](#about-cuckoo-filters)
    * [Deletions/Duplicates](#duplicates)
    * [Counting](#counting)
    * [Capacity](#capacity)
    * [Speed](#speed)
    * [Hashing Algorithms](#hashing-algorithms)
    * [Multi-Threading](#multi-threading)
+
+
+##About Cuckoo Filters
+
+Cuckoo filter is a Bloom filter replacement for approximated set-membership queries. While Bloom filters are well-known space-efficient data structures to serve queries like "if item x is in a set?", they do not support deletion. Their variances to enable deletion (like counting Bloom filters) usually require much more space.
+
+Cuckoo ﬁlters provide the ﬂexibility to add and remove items dynamically. A cuckoo filter is based on cuckoo hashing (and therefore named as cuckoo filter). It is essentially a cuckoo hash table storing each key's fingerprint. Cuckoo hash tables can be highly compact, thus a cuckoo filter could use less space than conventional Bloom ﬁlters, for applications that require low false positive rates (< 3%).
+
+For details about the algorithm and citations please use this article for now
+
+["Cuckoo Filter: Better Than Bloom" by Bin Fan, Dave Andersen and Michael Kaminsky](https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf)
+
+If you're looking for an implementation in a different language check out these GitHub links.
+
+* [C++ Implementation](https://github.com/efficient/cuckoofilter)
+* [Golang Implementation](https://github.com/seiflotfy/cuckoofilter)
+
+My personal thanks goes out to the authors of those libaries, their code helped immensely while writing my own implementation.
 
 ##Installation
 Maven artifact:
@@ -70,22 +88,6 @@ public class Example {
 
 ##Documentation
 <strong>[Visit The JavaDoc Here](http://javadoc.io/doc/com.github.mgunlogson/cuckoofilter4j)</strong>
-##About Cuckoo Filters
-
-Cuckoo filter is a Bloom filter replacement for approximated set-membership queries. While Bloom filters are well-known space-efficient data structures to serve queries like "if item x is in a set?", they do not support deletion. Their variances to enable deletion (like counting Bloom filters) usually require much more space.
-
-Cuckoo ﬁlters provide the ﬂexibility to add and remove items dynamically. A cuckoo filter is based on cuckoo hashing (and therefore named as cuckoo filter). It is essentially a cuckoo hash table storing each key's fingerprint. Cuckoo hash tables can be highly compact, thus a cuckoo filter could use less space than conventional Bloom ﬁlters, for applications that require low false positive rates (< 3%).
-
-For details about the algorithm and citations please use this article for now
-
-["Cuckoo Filter: Better Than Bloom" by Bin Fan, Dave Andersen and Michael Kaminsky](https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf)
-
-If you're looking for an implementation in a different language check out these GitHub links.
-
-* [C++ Implementation](https://github.com/efficient/cuckoofilter)
-* [Golang Implementation](https://github.com/seiflotfy/cuckoofilter)
-
-My personal thanks goes out to the authors of those libaries, their code helped immensely while writing my own implementation.
 
 ###False Positives
  The false positive rate of the filter is the probability that `mightContain()` will erroneously return `true` for an object that was not added to the filter. Unlike Bloom filters, a Cuckoo filter will fail to insert when it reaches capacity. If an insert fails `put()` will `return false`
