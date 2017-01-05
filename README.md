@@ -107,5 +107,6 @@ MultiThreading
 --------------------------------
 The library is designed for all operations to be thread-safe. Most methods also use table segmentation to run multiple operations concurrently. Notable exceptions include copy, serialization, and hashcode which nessecarily lock the entire table until complete. <strong>Thread safety should be considered BETA at the moment.</strong> Multithreading is notoriously hard to test, and despite my best effort to avoid bugs and deadlocks it is likely that some remain. If you are using multithreading in production I will do my best to provide prompt support and give you my thanks :).
 
-
-
+Serializing
+--------------------------------
+Cuckoo filters are serializable.

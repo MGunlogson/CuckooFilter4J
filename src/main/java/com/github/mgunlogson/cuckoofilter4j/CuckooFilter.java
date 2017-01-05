@@ -384,12 +384,11 @@ public final class CuckooFilter<T> implements Serializable {
 
 	/**
 	 * Gets the size of the underlying {@code LongBitSet} table for the filter,
-	 * in bits. This is <i>not</i> the actual size of the filter in memory and
-	 * should only be used if you understand the source.
+	 * in bits. This should only be used if you understand the source.
 	 * 
 	 * @return space used by table in bits
 	 */
-	long getStorageSize() {
+	public long getStorageSize() {
 		return table.getStorageSize();
 	}
 
