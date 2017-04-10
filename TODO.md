@@ -30,3 +30,34 @@ Add hook to callback for when filter is close to overflow
 
 Add function to clear the filter
 -------------------
+Need a quick mem wipe to zero out the filter.. possibly use unsafe methods?
+
+Add support for xxHash
+---------------
+Guava's Bloom recently switched to a new hashing algorithm, XXHash, that gives a substanial increase in performance. The filter should be optimized to use this hash. MPdaedalus might be working on this
+
+Improve bitset implementation
+--------------
+Current one was modified from Apache Lucene and isn't ideal for what we're doing with it.
+
+Add support for custom serialization
+------------------------
+this will save a little space when serializing/deserializing.
+
+Strip support for multiple hash functions and just use the fastest
+---------------------------
+in practice the demand seems to be for the fastest filter possible, configurability be damned
+
+add more multithreaded tests
+------------------------
+
+Add statistical tests to catch insidious degredation of filter quality
+-------------------
+
+add tests to catch non-random bucket index and tag values
+--------------------
+
+
+add tests to catch invalid or missing bucket index and tag values
+---------------------------
+
