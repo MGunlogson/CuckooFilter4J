@@ -33,6 +33,7 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
+import com.google.common.hash.xxHashFunction;
 
 /**
  * Serializable, salted wrapper class for Guava's HashFunctions exists because
@@ -67,10 +68,8 @@ final class SerializableSaltedHasher<T> implements Serializable {
 	}
 
 	static <T> SerializableSaltedHasher<T> create(int hashBitsNeeded, Funnel<? super T> funnel) {
-		Algorithm alg = Algorithm.Murmur3_32;
-		if (hashBitsNeeded > 32)
-			alg = Algorithm.Murmur3_128;
-		return create(alg, funnel);
+		if (hashBitsNeeded > 64) return create(Algorithm.Murmur3_128, funnel);
+		return create(Algorithm.xxHash64, funnel);
 	}
 
 	static <T> SerializableSaltedHasher<T> create(Algorithm alg, Funnel<? super T> funnel) {
@@ -91,10 +90,12 @@ final class SerializableSaltedHasher<T> implements Serializable {
 
 	private static HashFunction configureHash(Algorithm alg, long seedNSalt, long addlSipSeed) {
 		switch (alg) {
-		case Murmur3_32:
-			return Hashing.murmur3_32((int) seedNSalt);
+		case xxHash64:
+			return new xxHashFunction(seedNSalt);
 		case Murmur3_128:
 			return Hashing.murmur3_128((int) seedNSalt);
+		case Murmur3_32:
+			return Hashing.murmur3_32((int) seedNSalt);
 		case sha256:
 			return Hashing.sha1();
 		case sipHash24:
