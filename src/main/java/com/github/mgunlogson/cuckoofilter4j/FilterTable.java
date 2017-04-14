@@ -206,9 +206,9 @@ final class FilterTable implements Serializable {
 	 */
 	boolean checkTag(long bucketIndex, int posInBucket, long tag) {
 		long tagStartIdx = getTagOffset(bucketIndex, posInBucket);
-		for (long i = 0; i < bitsPerTag; i++) {
-			boolean tagBitIsSet = (tag & (1L << i)) != 0;
-			if (memBlock.get(i + tagStartIdx) != tagBitIsSet)
+		final int bityPerTag = bitsPerTag;
+		for (long i = 0; i < bityPerTag; i++) {
+			if (memBlock.get(i + tagStartIdx) != ((tag & (1L << i)) != 0))
 				return false;
 		}
 		return true;
