@@ -55,7 +55,11 @@ public final class Utils {
 		/**
 		 * SipHash(2,4) secure hash.
 		 */
-		sipHash24(3);
+		sipHash24(3),
+		/**
+		 * xxHash 64bit.
+		 */
+		xxHash64(4);
 		private final int id;
 
 		Algorithm(int id) {
