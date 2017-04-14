@@ -145,17 +145,18 @@ final class IndexTagCalc<T> implements Serializable {
 		long bucketIndex = 0;
 		HashCode code = hasher.hashObj(item);
 		// 32 bit hash
-		if (hashLength == 32) {
-			int hashVal = code.asInt();
-			bucketIndex = getBucketIndex32(hashVal);
-			// loop until tag isn't equal to empty bucket (0)
-			tag = getTagValue32(hashVal);
-			for (int salt = 1; tag == 0; salt++) {
-				hashVal = hasher.hashObjWithSalt(item, salt).asInt();
-				tag = getTagValue32(hashVal);
-				assert salt < 100;// shouldn't happen in our timeline
-			}
-		} else if (hashLength == 64) {
+//		if (hashLength == 32) {
+//			int hashVal = code.asInt();
+//			bucketIndex = getBucketIndex32(hashVal);
+//			// loop until tag isn't equal to empty bucket (0)
+//			tag = getTagValue32(hashVal);
+//			for (int salt = 1; tag == 0; salt++) {
+//				hashVal = hasher.hashObjWithSalt(item, salt).asInt();
+//				tag = getTagValue32(hashVal);
+//				assert salt < 100;// shouldn't happen in our timeline
+//			}
+//		} else 
+		if (hashLength == 64) {//TODO fix hashLength 32 not 64
 			long hashVal = code.asLong();
 			bucketIndex = getBucketIndex64(hashVal);
 			// loop until tag isn't equal to empty bucket (0)
