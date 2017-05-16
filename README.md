@@ -9,6 +9,8 @@ Cuckoo Filter For Java
 ==============
 This library offers a similar interface to Guava's Bloom filters. In most cases it can be used interchangeably and has additional advantages including thread-safety, concurrent operations, deletions/counting and a configurable hashing algorithm.
 
+This Forked version from MGunlogson/CuckooFilter4J has replaced the MurMur hash functions with xxHash which is much quicker. If you are only using the filter with primitive numbers (long,int,short,byte) you should use the filter from the primitive branch (https://github.com/MPdaedalus/CuckooFilter4J/tree/Primitive-Filter) as it is much quicker due to mightContain() calls creating no Garbage compared to this branch that supports Objects.
+
  * [About Cuckoo Filters](#about-cuckoo-filters)
  * [Installation](#installation)
  * [Usage](#usage)
