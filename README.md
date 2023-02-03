@@ -4,6 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/MGunlogson/CuckooFilter4J/badge.svg?branch=master)](https://coveralls.io/github/MGunlogson/CuckooFilter4J?branch=master)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
+# This repo is unmaintained.
+Sorry to users, I long since switched to using Bloom filters and don't currently have time to maintain this
+
 
 Cuckoo Filter For Java
 ==============
