@@ -4,8 +4,10 @@
 [![Coverage Status](https://coveralls.io/repos/github/MGunlogson/CuckooFilter4J/badge.svg?branch=master)](https://coveralls.io/github/MGunlogson/CuckooFilter4J?branch=master)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-# This repo is unmaintained.
-Sorry to users, I long since switched to using Bloom filters and don't currently have time to maintain this
+# This repo is unmaintained!
+Sorry to users, I long since switched to using Bloom filters and don't currently have time to maintain this.
+
+There are known bugs in the implementation, and many unrealized performance opportunities using primitives, new hashing algorithms, and possibly off-heap storage in Java 17+ . I definitely don't recommend using this in production, but leaving it up for existing users (and because I can't find another Java Cuckoo filter implementation). Feel free to use this as a base for your own improvements, and I will considering transfering ownership to a new maintainer if you agree to keep it fully open source under the same permissive license.
 
 
 Cuckoo Filter For Java
