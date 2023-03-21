@@ -110,7 +110,7 @@ Documentation
 ======
 <strong>[Visit The JavaDoc Here](http://javadoc.io/doc/com.github.mgunlogson/cuckoofilter4j)</strong>
 
-###False Positives
+### False Positives
  The false positive rate of the filter is the probability that `mightContain()` will erroneously return `true` for an object that was not added to the filter. Unlike Bloom filters, a Cuckoo filter will fail to insert when it reaches capacity. If an insert fails `put()` will `return false`
 
 Duplicates
